@@ -197,7 +197,8 @@ def runModels(X_train, y_train, X_test, y_test):
 
     model.fit(X_train, y_train, epochs=100, verbose=False)
     y_pred = np.round(model.predict(X_test))
-    bagging += y_pred.reshape(len(y_pred))
+    np.add(bagging, y_pred.reshape(len(y_pred)), casting='unsafe')
+    #bagging += y_pred.reshape(len(y_pred))
     loss,accuracy = model.evaluate(X_test, y_test,)
     #print(f"RBF Network Accuracy: {accuracy}")
     p, r, f, _ = precision_recall_fscore_support(y_test, y_pred, average = 'weighted')
@@ -234,8 +235,8 @@ def runModels(X_train, y_train, X_test, y_test):
     res_bal = pd.DataFrame(resultados, columns=['Clasificador', 'Accuracy', 'Precision', 'Recall', 'F1 Score', 'Squared Error'])
     res_pos = pd.DataFrame(resultados_pos, columns=['Clasificador', 'Accuracy', 'Precision', 'Recall', 'F1 Score', 'Squared Error'])
 
-    res_bal.to_csv('resultados_balanceados.csv')
-    res_pos.to_csv('resultados_positivos.csv')
+    #res_bal.to_csv('resultados_balanceados.csv')
+    #res_pos.to_csv('resultados_positivos.csv')
 
     return res_bal, res_pos
 

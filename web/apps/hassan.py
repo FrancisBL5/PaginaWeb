@@ -43,25 +43,26 @@ def filterAndSplit(df_original):
     #Grafo completo
     G_completo = gf.createGraph(df_original)
     G_sub_completo = gf.createSubGraph(df_original)
-    nx.write_gml(G_completo, 'BD_UNAM_Graph.gml')
-    nx.write_gml(G_sub_completo, 'BD_UNAM_Sub_Graph.gml')
+    #nx.write_gml(G_completo, 'BD_UNAM_Graph.gml')
+    #nx.write_gml(G_sub_completo, 'BD_UNAM_Sub_Graph.gml')
 
     #Datos de entrenamiento
     G_train = gf.createGraph(df_train)
     G_sub_train = gf.createSubGraph(df_train)
 
-    nx.write_gml(G_train, 'BD_UNAM_Graph_train.gml')
-    nx.write_gml(G_sub_train, 'BD_UNAM_Sub_Graph_train.gml')
+    #nx.write_gml(G_train, 'BD_UNAM_Graph_train.gml')
+    #nx.write_gml(G_sub_train, 'BD_UNAM_Sub_Graph_train.gml')
 
     #Datos de prueba
     G_test = gf.createGraph(df_test)
     G_sub_test = gf.createSubGraph(df_test)
 
-    nx.write_gml(G_test, 'BD_UNAM_Graph_test.gml')
-    nx.write_gml(G_sub_test, 'BD_UNAM_Sub_Graph_test.gml')
+    #nx.write_gml(G_test, 'BD_UNAM_Graph_test.gml')
+    #nx.write_gml(G_sub_test, 'BD_UNAM_Sub_Graph_test.gml')
 
-    sample_train, sample_test = createSamples(G_train, G_test, nodes_catalogue)
-    return getParameters(sample_train, sample_test, G_train, G_test, G_sub_train, G_sub_test)
+    return G_completo, G_sub_completo, G_train, G_sub_train, G_test, G_sub_test, nodes_catalogue
+    # sample_train, sample_test = createSamples(G_train, G_test, nodes_catalogue)
+    # return getParameters(sample_train, sample_test, G_train, G_test, G_sub_train, G_sub_test)
 
 #----- Obtención de samples ------
 # Función que determina si un par de autores están conectados a través de un artículo
@@ -172,9 +173,12 @@ def getParameters(sample, sample_test, G_train, G_test, G_sub_train, G_sub_test)
     sample['community_ra'] = sample[['source','target']].apply(lambda x: ft.community_ra(G_sub_train,x[0],x[1]), axis=1)
     sample_test['community_ra'] = sample_test[['source','target']].apply(lambda x: ft.community_ra(G_sub_test,x[0],x[1]), axis=1)
 
-    sample_test.to_csv('sample_features_test.csv')
-    sample.to_csv('sample_features_train.csv')
+    #sample_test.to_csv('sample_features_test.csv')
+    #sample.to_csv('sample_features_train.csv')
 
     return sample, sample_test
 
 #filterAndSplit(pd.read_csv('UNAM_Completo_Corregido.csv'))
+#G_completo, G_sub_completo, G_train, G_sub_train, G_test, G_sub_test, nodes_catalogue = filterAndSplit(pd.read_csv('UNAM_Completo_Corregido.csv'))
+#sample_train, sample_test = createSamples(G_train, G_test, nodes_catalogue)
+#getParameters(sample_train, sample_test, G_train, G_test, G_sub_train, G_sub_test)
