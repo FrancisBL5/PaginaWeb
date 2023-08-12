@@ -139,7 +139,31 @@ tab4_content = dbc.Card(
                         html.Tr(html.Td("Sensibilidad (Recall)", colSpan=2)),
                     ])], striped=True, bordered=True), width = 6),
             ]),
-        html.P('''Algo sobre los resultados positivos y balanceados.'''),
+        html.P('''Se obtienen dos tipos de métricas para los modelos:'''),
+        dbc.Row([
+            dbc.Col(width = 1),
+            dbc.Col(
+                dbc.Table([
+                    html.Thead(html.Tr([html.Th("Resultados balanceados"),html.Th("Resultados positivos")])),
+                    ], striped=True, bordered=True), width = 10
+                )
+            ]),
+        dbc.Row([
+            dbc.Col(width = 1),
+            dbc.Col([
+                html.P("""Los resultados balanceados corresponden a las métricas de los modelos para todas las etiquetas. Es decir, las métricas
+                            de desempeño aplican tanto para la predicción de autores conectados, así como para la predicción de autores no conectados
+                            Cada modelo cuenta con métricas aplicables a cada etiqueta (conectados o no conectados), en donde se evaluan las instancias
+                            verdaderas para cada una."""),
+                html.P("""Al ser resultados balanceados, las métricas de cada etiqueta se promedian y como resultado se obtiene una medición general."""),
+                ], width=5),
+            dbc.Col([
+                html.P("""Los resultados positivos consisten en únicamente las métricas obtenidas para cada modelo, en donde estos clasificaron con
+                        éxito a los autores que realmente están conectados, ignorando por completo a las clasificaciones correctas de los autores
+                        que no lo están""")
+                ], width=5),
+            dbc.Col(width=1)
+            ])
         ]))
   
 #Contenido de tab5: Predicción de enlaces      
