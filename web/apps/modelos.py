@@ -18,6 +18,10 @@ from keras import Sequential
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.metrics import accuracy_score, mean_squared_error, precision_recall_fscore_support
 
+scaler = StandardScaler()
+
+from apps import features as ft
+
 #----- Modelos -----
 class RBFLayer(Layer):
     '''
@@ -244,3 +248,64 @@ def runModels(X_train, y_train, X_test, y_test):
 #data_test = pd.read_csv('sample_features_test.csv', index_col = 0)
 
 #transformVariables(data, data_test)
+
+def predecir(autor1,autor2, G, G_sub, data_test):
+    if autor1 not in G_sub.neighbors(autor2):
+        # 1. Obtención de parámetros
+        sum_neighbors = len(ft.neighbors(G,autor1)) + len(ft.neighbors(G,autor2))
+        sec_neighbors = ft.sum_sec_neig(G,autor1,autor2)
+        sum_kw = len(ft.sum_keywords(G,autor1,autor2))
+        kw_match = len(ft.keyword_match(G,autor1,autor2))
+        clus_index = ft.clustering_index(G_sub,autor1,autor2)
+        jacc_coeff = ft.jaccard_coefficient(G_sub,autor1,autor2)
+        comm_ra = ft.community_ra(G_sub,autor1,autor2)
+        registro = np.array([[sum_neighbors, sec_neighbors, sum_kw, kw_match, clus_index, jacc_coeff, comm_ra]])
+
+        # 2. Creación de DataFrame
+        registro = pd.DataFrame(registro, columns = ['sum_of_neighbors',
+                  'log_secundary_neighbors',
+                  'sum_of_keywords',
+                  'keywords_match',
+                  'clustering_index_sum',
+                  'jaccard_coefficient',
+                  'community_ra'])
+
+        X_test = data_test[['sum_of_neighbors',
+                  'log_secundary_neighbors',
+                  'sum_of_keywords',
+                  'keywords_match',
+                  'clustering_index_sum',
+                  'jaccard_coefficient',
+                  'community_ra']]
+
+        # 3. Concatenación de DataFrames
+        df = pd.concat([X_test, registro]).reset_index(drop=True)
+        # 4. Normalización de valores
+        prueba = scaler.fit_transform(df.values)
+
+        prueba = pd.DataFrame(prueba)
+        # 5. Separación de la última fila
+        prueba = prueba.tail(n=1).values
+        resultadosList = []
+        for modelo in modelos:
+            # 6. Predicción
+            res = modelo.predict(prueba)
+            resultadosList.append(res[0])
+
+        res = model.predict(prueba)
+        resultadosList.append(res[0][0])
+        resultadosLinkPrediction = {
+            'Clasificador': [
+                'Decision Tree',
+                'SVM - Linear Kernel',
+                'SVM - RBF Kernel',
+                'K-Neighbors',
+                'Naive Bayes',
+                'Multi-Layer Perceptron',
+                'RBF - Network',
+            ],
+            'Respuesta': resultadosList,
+        }
+        return resultadosLinkPrediction
+    else:
+        {}
