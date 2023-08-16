@@ -10,9 +10,6 @@ from apps import modelos as models
 
 from app import app
 
-#app = Dash(__name__, external_stylesheets = [dbc.themes.BOOTSTRAP])
-#app.title = 'Página principal'
-
 """df = pd.DataFrame()
 df_sample_train = pd.DataFrame()
 df_sample_test = pd.DataFrame()
@@ -115,7 +112,13 @@ layout = [html.Div([
             'padding-bottom':'40px'}),
 
     html.Div([
-        html.H2('Generación de Grafos'),
+        html.H2('Generación de Grafo'),
+        html.P(['En el siguiente recuadro se mostrará el grafo interactivo donde los nodos ',
+            html.Span('Autores', style = {'color':'blue'}), ' se mostrarán en ',
+            html.Span('azul', style = {'color':'blue'}), ' y los nodos ',
+            html.Span('Artículo', style = {'color':'red'}), ' se mostrarán en ',
+            html.Span('rojo', style = {'color':'red'}), '''. Al hacer clic en ellos se mostrará su nombre en el 
+                recuadro debajo del grafo. También es posible alejar y acercar el grafo.''']),
         html.Br(),
         dbc.Row([
             dbc.Col([
@@ -125,16 +128,19 @@ layout = [html.Div([
                     minZoom = 0.1,
                     maxZoom = 6,
                     layout={'name': 'cose'},
-                    style={'width': '800px', 'height': '600px', 'background-color': '#EEEEEE'}),
+                    style={'width': '100%', 'height': '600px', 'background-color': '#EEEEEE'}),
+                html.Br(),
                 html.Div(id='cytoscape-tapNodeData-json'),
                 ], width = 7),
             dbc.Col([
                 html.H4('Link Prediction', style={'textAlign': 'center'}),
                 html.P("""Ponga a prueba los modelos de Machine Learning y compruebe si un par de autores
-                       pueden o no colaborar en un futuro"""),
+                       pueden o no colaborar en un futuro."""),
                 html.P("""Para comenzar, necesitará seleccionar dos autores. Seleccione un autor en el grafo interactivo
                        y si está conforme con esa elección, proceda a elegir al siguiente apoyándose de los Radio Items.
                        Para ejecutar los modelos, haga click en \"Predecir\""""),
+                html.P('''Una vez que se muestren los resultados, si desea hacer otra predicción con otros autores, haga 
+                        click en \"Hacer otra predicción\"'''),
                 dbc.Card(
                     dbc.CardBody(id='autores-seleccionados', children=[
                         dbc.Row([
@@ -143,18 +149,18 @@ layout = [html.Div([
                                 dbc.RadioItems(
                                     id = 'editarAutoresRadioItems',
                                     options=[
-                                        {"label": "Editar Autor 1", "value": 1},
-                                        {"label": "Editar Autor 2", "value": 2}],
+                                        {"label": "Seleccionar Autor 1", "value": 1},
+                                        {"label": "Seleccionar Autor 2", "value": 2}],
                                     labelCheckedClassName="text-success",
                                     inputCheckedClassName="border border-success bg-success",
                                     value = 1)
-                                ], width=4),
+                                ], width=5),
                             dbc.Col([
                                 dbc.ListGroup([
                                     dbc.ListGroupItem('Autor 1', id='autor1'),
                                     dbc.ListGroupItem('Autor 2', id='autor2'),
                                     ], flush=True)
-                                ], width=8)
+                                ], width=7)
                             ]),
                         html.Br(),
                         dbc.Row([
