@@ -57,21 +57,26 @@ tab1_content = dbc.Card(
             html.Div(id='redirect-datos')
         ]))
 
-#Contenido de tab2: generación de grafos
+#Contenido de tab2: generación de grafo
 tab2_content = dbc.Card(
     dbc.CardBody([
-        html.P('''Al cargar el archivo, se construirán dos grafos. El primero contendrá nodos de
-            Autores, Artículos, Keywords y Afiliaciones de forma que un Autor se conecta con sus 
-            Afiliaciones y con los Artículos que ha escrito; mientras que los Artículos se conectan 
-            con su Autor y sus Keywords.'''),
-        html.P('''El segundo grafo es un subgrafo del primero, donde solo existen nodos Autor. Las 
-            aristas que unen a los nodos representan aquellos Artículos que ambos autores escribieron.
-            '''),
-        dbc.Carousel(
-            items=[
-                {"key": "1", "src": "/assets/img/grafo.jpg", "header": "Ejemplo del grafo"},
-                {"key": "2", "src": "/assets/img/subgrafo.jpg", "header": "Ejemplo de subgrafo"}],
-            controls=True, indicators=True)]))
+        dbc.Row([
+            dbc.Col([
+                html.P(['''Al cargar el archivo, se construirá un grafo que contiene nodos Autor y Artículo, de forma
+                    que cada autor se conecta con aquellos artículos que ha escrito. Los nodos ''',
+                    html.Span('Autor', style = {'color':'blue'}), ' estarán coloreados en ',
+                    html.Span('azul', style = {'color':'blue'}), ', mientras que los nodos ',
+                    html.Span('Artículo', style = {'color':'red'}), ' estarán coloreados en ',
+                    html.Span('rojo', style = {'color':'red'}), '.']),
+                html.P('''El grafo es interactivo de manera que es posible acercar y alejar el grafo, hacer clic y 
+                    arrastrar los nodos a distintos lugares. Cada vez que se hace clic en un nodo, se muestra la información
+                    o atributos que guarda ese nodo. '''),
+                html.P('Una muestra ejemplo del grafo se puede observar en la imagen:')], width = 6),
+            dbc.Col([
+                html.Img(src='/assets/img/grafo.png', width = 600)
+                ], width = 6)
+            ])
+        ]))
 
 #Contenido de tab3: Creación de modelos
 tab3_content = dbc.Card(
@@ -142,28 +147,20 @@ tab4_content = dbc.Card(
         html.P('''Se obtienen dos tipos de métricas para los modelos:'''),
         dbc.Row([
             dbc.Col(width = 1),
-            dbc.Col(
-                dbc.Table([
-                    html.Thead(html.Tr([html.Th("Resultados balanceados"),html.Th("Resultados positivos")])),
-                    ], striped=True, bordered=True), width = 10
-                )
-            ]),
-        dbc.Row([
-            dbc.Col(width = 1),
             dbc.Col([
+                html.H6('Resultados balanceados', style = {'font-weight': 'bold'}),
                 html.P("""Los resultados balanceados corresponden a las métricas de los modelos para todas las etiquetas. Es decir, las métricas
                             de desempeño aplican tanto para la predicción de autores conectados, así como para la predicción de autores no conectados
                             Cada modelo cuenta con métricas aplicables a cada etiqueta (conectados o no conectados), en donde se evaluan las instancias
                             verdaderas para cada una."""),
                 html.P("""Al ser resultados balanceados, las métricas de cada etiqueta se promedian y como resultado se obtiene una medición general."""),
-                ], width=5),
+                ], width = 5),
             dbc.Col([
+                html.H6('Resultados positivos', style = {'font-weight': 'bold'}),
                 html.P("""Los resultados positivos consisten en únicamente las métricas obtenidas para cada modelo, en donde estos clasificaron con
                         éxito a los autores que realmente están conectados, ignorando por completo a las clasificaciones correctas de los autores
-                        que no lo están""")
-                ], width=5),
-            dbc.Col(width=1)
-            ])
+                        que no lo están"""),], width = 5),
+            ]),
         ]))
   
 #Contenido de tab5: Predicción de enlaces      
@@ -174,8 +171,14 @@ tab5_content = dbc.Card(
             características antes mencionadas para un par específico de autores que aún no hayan colaborado. Después 
             normaliza esos valores tomando en cuenta el conjunto de datos con los que se validó el modelo. Finalmente, 
             hace la predicción.'''),
-        html.P('''Para esta parte solo es necesario escoger dos autores del botón desplegable y al dar clic en 
-            "Hacer predicción", se mostrará el resultado.'''),
+        html.P(['''Para esta parte solo es necesario seleccionar dos autores haciendo uso del grafo. Una vez seleccionados,
+            se hace clic en el botón ''',
+            html.Span('Predecir', style = {'font-weight': 'bold'}), ' y se mostrará el resultado: ',
+            html.Span('Conectados', style = {'font-weight': 'bold'}), ' o ',
+            html.Span('No Conectados', style = {'font-weight': 'bold'}), '.'],),
+        html.P('''Este resultado se concluye si 4 o más modelos de los 7 utilizados coinciden en una misma clasificación. 
+            Sin embargo, se recomienda revisar las métricas de validación de cada modelo para confirmar 
+            su precisión y confiabilidad.'''),
         ]))
 
 #Contenido de tab6: Consultas
@@ -239,11 +242,11 @@ layout = [html.Div([
             dbc.CardHeader(
                 dbc.Tabs([
                     dbc.Tab(label="Carga de datos", tab_id="tab-1"),
-                    dbc.Tab(label="Generación de grafos", tab_id="tab-2"),
+                    dbc.Tab(label="Generación de grafo", tab_id="tab-2"),
                     dbc.Tab(label="Creación de modelos", tab_id="tab-3"),
                     dbc.Tab(label="Validación de modelos", tab_id="tab-4"),
                     dbc.Tab(label="Predicción de enlaces", tab_id="tab-5"),
-                    dbc.Tab(label="Consultas con grafo interactivo", tab_id="tab-6"),
+                    dbc.Tab(label="Consultas", tab_id="tab-6"),
                 ], id="card-tabs", active_tab="tab-1",)),
             dbc.CardBody(html.P(id="card-content", className="card-text")),
             ])
