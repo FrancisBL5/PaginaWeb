@@ -10,17 +10,6 @@ from apps import modelos as models
 
 from app import app
 
-"""df = pd.DataFrame()
-df_sample_train = pd.DataFrame()
-df_sample_test = pd.DataFrame()
-res_bal = pd.DataFrame()
-res_pos = pd.DataFrame()"""
-
-#def generate_table(df):
-#    return html.Div([
-#            dash_table.DataTable(data=df.to_dict('records'), page_size=15, style_table={'overflowX': 'auto'})
-#        ]),
-
 def convertGraphToCY(G):
     """Función que transforma un grafo de NetworkX en un Cytoscape JSON format"""
     cy = nx.readwrite.json_graph.cytoscape_data(G)
@@ -82,6 +71,67 @@ def createSubGraphArtAut(cyInt):
         else:
             i.update({'style': {'background-color': '#0F0000'}})
     return cy['elements']
+
+def lookForArticles(autor1, autor2, G):
+    """Función que obtiene una lista con los artículos en los cuales ambos autores han colaborado"""
+    list_articles = []
+    for articulo in G.neighbors(autor1):
+        if G.nodes[articulo]['tipo'] == 'articulo':
+            if articulo in G.neighbors(autor2):
+                list_articles.append(articulo)
+    return list_articles
+
+def modalArticles(autor1, autor2, list_articles):
+    """Función que obtiene una lista de artículos y lo muestra en un modal"""
+    """contentList = [
+        html.Ol(articulo)
+        for articulo in list_articles
+        ]"""
+    ModalBody = [
+        html.P(["Artículos en los cuales ",
+            html.Span(autor1, style = {'font-weight': 'bold'}), " y ",
+            html.Span(autor2, style = {'font-weight': 'bold'}), " han colaborado:"]),
+        html.Div([
+            html.Ul([
+                html.Li(articulo)
+                for articulo in list_articles
+                ]),
+            ])
+        ]
+    return html.Div([
+        dbc.Modal([
+            dbc.ModalHeader(dbc.ModalTitle("Lista de artículos")),
+            dbc.ModalBody(ModalBody),
+            dbc.ModalFooter(
+                dbc.Button("Close", id="close-lista", className="ms-auto", n_clicks=0))
+            ],
+            id="modal-lista-articulo",
+            scrollable=True,
+            is_open=False),
+        dbc.Alert('Los autores ya han colaborado anteriormente', color="success"),
+        dbc.Button("Ver artículos", id="open-articles", n_clicks=0, color='success', outline=True)
+        ])
+
+def resultLinkPrediction(lista_resultados):
+    """Función que, en base a los resultados, define si dos autores pueden o no colaborar en un futuro"""
+    contador = {}
+    for elem in lista_resultados:
+        contador[elem] = contador.get(elem, 0) + 1
+    contador
+    for key, value in contador.items():
+        if value > 3:
+            if key == 0:
+                return dbc.Alert('No es probable que los autores colaboren en un futuro', color = 'danger')
+            elif key == 1:
+                return dbc.Alert('Es posible que los autores si colaboren en un futuro', color = 'success')
+        # Valor de la RBF - Network
+        if key not in [0, 1]:
+            if key > 0.6:
+                return dbc.Alert('Es posible que los autores si colaboren en un futuro', color = 'success')
+            elif key < 0.4:
+                return dbc.Alert('No es probable que los autores colaboren en un futuro', color = 'danger')
+            else:
+                return dbc.Alert('No se tiene la suficiente certeza para poder decir si los autores pueden o no colaborar en un futuro', color = 'warning')
 
 layout = [html.Div([
     html.H2('Carga de Datos'),
@@ -232,14 +282,6 @@ def upload_datos(list_of_contents, filename):
             return [],html.Div(dbc.Alert("Algo raro pasa aquí", color="danger")),
         return df.to_json(date_format='iso', orient='split'), []
 
-#____________ Generar tabla del archivo inicial
-#@app.callback(Output('html-table', 'children'),
-#              Input('output-data-upload', 'data'),
-#              prevent_initial_call = True)
-#def generateTableHtml(jsonified_cleaned_data):
-#    df = pd.read_json(jsonified_cleaned_data, orient='split')
-#    return generate_table(df)
-
 #____________ Obtener grafos
 @app.callback(Output('graphCompleto', 'data'),
               Output('graphSubCompleto', 'data'),
@@ -260,9 +302,6 @@ def getAllGraphs(jsonified_cleaned_data):
     cy_G_test = convertGraphToCY(G_test)
     cy_G_sub_test = convertGraphToCY(G_sub_test)
     return cy_G_completo, cy_G_sub_completo, cy_G_train, cy_G_sub_train, cy_G_test, cy_G_sub_test, nodes_catalogue.to_json(date_format='iso', orient='split')
-    #df_sample_train, df_sample_test = hs.filterAndSplit(df)
-    #res_bal, res_pos = models.transformVariables(df_sample_train, df_sample_test)
-    #return generate_table(res_bal), generate_table(res_pos)
 
 # ___________ Dibujar grafo completo
 @app.callback(Output('cytoscape-event-callbacks_GraphComplete', 'elements'),
@@ -289,8 +328,10 @@ def displayTapNodeData(data):
             ]
         return html.Div([
             dbc.Modal([
-                dbc.ModalHeader(dbc.ModalTitle(dict(data)['value'])),
-                dbc.ModalBody(ModalBody)
+                dbc.ModalHeader(dbc.ModalTitle(dict(data)['value']), close_button=False),
+                dbc.ModalBody(ModalBody),
+                dbc.ModalFooter(
+                    dbc.Button("Close", id="close-backdrop", className="ms-auto", n_clicks=0))
                 ],
                 id="modal-atributos-articulo",
                 scrollable=True,
@@ -300,15 +341,24 @@ def displayTapNodeData(data):
                 dbc.CardBody([
                     dbc.Button("Abrir detalles", id="open-details", n_clicks=0, color='success', outline=True),
                     ])
-                ], color = 'danger', outline = True)
+                ], color = 'danger', outline = True),
             ])
 
+# ___________ Abrir/cerrar modal de los detalles de un artículo
 @app.callback(Output("modal-atributos-articulo", "is_open"),
-             Input("open-details", "n_clicks"),
+             [Input("open-details", "n_clicks"), Input("close-backdrop", "n_clicks")],
              State("modal-atributos-articulo", "is_open"),
              prevent_initial_call = True)
-def toggle_modal(n1, is_open):
-    return not is_open if n1 else is_open
+def toggle_modal(n1, n2, is_open):
+    return not is_open if n1 or n2 else is_open
+
+# ___________ Abrir/cerrar modal de la lista de artículos
+@app.callback(Output("modal-lista-articulo", "is_open"),
+             [Input("close-lista", "n_clicks"), Input("open-articles", "n_clicks")],
+             State("modal-lista-articulo", "is_open"),
+             prevent_initial_call = True)
+def toggle_modal(n1, n2, is_open):
+    return not is_open if n1 or n2 else is_open
 
 # ___________ Mostrar autores en listGroup
 @app.callback(Output('autor1', 'children'),
@@ -348,10 +398,17 @@ def predecir(nPredict, nRestart, Autor1, Autor2, deshabPredict, deshabRestar, cy
             G_sub = convertCYToGraph(cy_G_sub)
             resultadosLinkPrediction = models.predecir(Autor1,Autor2, G, G_sub, df_test)
             if resultadosLinkPrediction == {} or resultadosLinkPrediction is None:
-                return True, False, dbc.Alert('Los autores ya han colaborado anteriormente', color="success"),
+                listArticles = lookForArticles(Autor1, Autor2, G)
+                return True, False, modalArticles(Autor1, Autor2, listArticles)
+            mensajeAlerta = resultLinkPrediction(resultadosLinkPrediction['Respuesta'])
             resultadosLinkPrediction = pd.DataFrame(resultadosLinkPrediction)
             resultadosLinkPrediction = dbc.Table.from_dataframe(resultadosLinkPrediction, striped=True, bordered=True, hover=True)
-            return True, False, resultadosLinkPrediction
+            return True, False, [
+                mensajeAlerta,
+                dbc.Accordion([
+                    dbc.AccordionItem(resultadosLinkPrediction, title = 'Expandir resultados para cada modelo')
+                    ], start_collapsed=True)
+                ]
         return False, True, dbc.Alert('Por favor, escoja dos autores diferentes entre sí', color="warning")
     elif nRestart > 0 and deshabPredict == True:
         return False, True, []
