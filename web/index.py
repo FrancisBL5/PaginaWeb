@@ -7,21 +7,22 @@ from app import app
 from app import server
 
 # Connect to your app pages
-from apps import home, intento3
+from apps import home, intento3, consultas
 
 navbar = dbc.NavbarSimple(
     children=[
-        dbc.NavItem(dbc.NavLink("Holis", href="/apps/intento3")),
-        dbc.DropdownMenu(
-            children=[
-                dbc.DropdownMenuItem("lol", header=True),
-                dbc.DropdownMenuItem("jsjsjs", href=""),
-                dbc.DropdownMenuItem("aiuda", href=""),
-            ],
-            nav=True,
-            in_navbar=True,
-            label="More",
-        ),
+        dbc.NavItem(dbc.NavLink("Grafo y Predicción", href="/apps/intento3")),
+        dbc.NavItem(dbc.NavLink("Consultas", href="/apps/consultas")),
+        #dbc.DropdownMenu(
+        #    children=[
+        #        dbc.DropdownMenuItem("lol", header=True),
+        #        dbc.DropdownMenuItem("jsjsjs", href=""),
+        #        dbc.DropdownMenuItem("aiuda", href=""),
+        #    ],
+        #    nav=True,
+        #    in_navbar=True,
+        #    label="More",
+        #),
     ],
     brand="BD UNAM",
     brand_href="/apps/home",
@@ -54,6 +55,8 @@ app.layout = html.Div([
 def display_page(pathname):
     if pathname == '/apps/intento3':
         return intento3.layout
+    if pathname == '/apps/consultas':
+        return consultas.layout
     return home.layout
 
 
