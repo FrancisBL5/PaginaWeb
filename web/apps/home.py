@@ -3,7 +3,7 @@ from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
 
 from app import app
-from apps import home, intento3
+from apps import home, intento3, consultas
 
 
 #Contenido de tab1: carga de datos
@@ -73,7 +73,7 @@ tab2_content = dbc.Card(
                     o atributos que guarda ese nodo. '''),
                 html.P('Una muestra ejemplo del grafo se puede observar en la imagen:')], width = 6),
             dbc.Col([
-                html.Img(src='/assets/img/grafo.png', width = 600)
+                html.Img(src='/assets/img/grafo.png', width = '100%')
                 ], width = 6)
             ])
         ]))
@@ -175,8 +175,13 @@ tab5_content = dbc.Card(
             se hace clic en el botón ''',
             html.Span('Predecir', style = {'font-weight': 'bold'}), ' y se mostrará el resultado: ',
             html.Span('Conectados', style = {'font-weight': 'bold'}), ' o ',
-            html.Span('No Conectados', style = {'font-weight': 'bold'}), '.'],),
-        html.P('''Este resultado se concluye si 4 o más modelos de los 7 utilizados coinciden en una misma clasificación. 
+            html.Span('No Conectados', style = {'font-weight': 'bold'}), '''. También se podrá desplegar una tabla con la 
+            clasificación hecha por cada modelo entrenado.'''],),
+        dbc.Row([
+            dbc.Col(html.Img(src = '/assets/img/pred_pos.png', width = '100%'), width = 6),
+            dbc.Col(html.Img(src = '/assets/img/pred_neg.png', width = '100%'), width = 6),
+            ]),
+        html.P('''El resultado mostrado se deduce si 4 o más modelos de los 7 utilizados coinciden en una misma clasificación. 
             Sin embargo, se recomienda revisar las métricas de validación de cada modelo para confirmar 
             su precisión y confiabilidad.'''),
         ]))
@@ -188,6 +193,9 @@ tab6_content = dbc.Card(
             arista, se muestra la información que representa ese nodo o arista. También, se colorea cada nodo según
             su tipo: Artículo, Autor, Dependencia o Keyword.'''),
         html.P('''Además de eso se pueden hacer consultas a la base de datos por Autor, por Título, por Keyword y más.'''),
+        html.Div(dbc.Button("Empezar con las consultas", color="primary", id='button-consultas', outline=True, href='/apps/consultas'), 
+                className="d-grid gap-2 col-6 mx-auto"),
+            html.Div(id='redirect-consultas')
         ]))
 
 
@@ -197,15 +205,15 @@ layout = [html.Div([
         html.H5('''Predicción de enlaces en redes sociales utilizando
                 Teoría de Grafos y Aprendizaje Supervisado ''')], style={'textAlign':'center'}),
 
-    html.Div([
-        html.Br(),
-        html.P('''Intro'''),
-        ], style = {
-            'textAlign': 'justify',
-            'padding-top':'20px', 
-            'padding-left':'40px', 
-            'padding-right':'40px', 
-            'padding-bottom':'40px'}),
+    #html.Div([
+    #    html.Br(),
+    #    html.P('''Intro'''),
+    #    ], style = {
+    #        'textAlign': 'justify',
+    #        'padding-top':'20px', 
+    #        'padding-left':'40px', 
+    #        'padding-right':'40px', 
+    #        'padding-bottom':'40px'}),
 
     html.Div([
         html.Br(),
@@ -278,3 +286,9 @@ def tab_content(active_tab):
 def click_carga(b_carga):
     if b_carga != None and b_carga > 0:
         return intento3.layout
+
+@app.callback(Output("redirect-consultas", "children"), 
+             Input("button-consultas", "n_clicks"))
+def click_carga(b_carga):
+    if b_carga != None and b_carga > 0:
+        return consultas.layout
