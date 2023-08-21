@@ -7,6 +7,7 @@ import numpy as np
 import base64, io
 import json
 from apps import consultas_functions as cf
+from apps import text_functions as textf
 
 from app import app
 
@@ -78,7 +79,7 @@ layout = [html.Div([
                 ], width = 6),
             dbc.Col([
                 dbc.Button("Buscar", id="button-buscar", n_clicks=0, disabled=True),
-                ], width = 1)
+                ], width = 1, style = {'textAlign': 'right'})
 
             ]),
         html.Br(),
@@ -107,7 +108,7 @@ layout = [html.Div([
                         {"label": "¿Qué artículo tiene más autores?", "value": 5},
                         ], id = 'dropdown-consultas-frec'),
                     ]), width = 11),
-            dbc.Col(dbc.Button("Buscar", id="button-consultas-frec", n_clicks=0, disabled=True), width = 1),
+            dbc.Col(dbc.Button("Buscar", id="button-consultas-frec", n_clicks=0, disabled=True), width = 1, style = {'textAlign': 'right'}),
             ]),
         html.Br(),
         html.Div(id='resultados-consultas-frec'),
@@ -128,15 +129,23 @@ layout = [html.Div([
                 dbc.InputGroup([
                     dbc.InputGroupText("Artículo 1 "),
                     dbc.Select(options = [], id = 'dropdown-similitud-art1'),
-                    ]), width = 5),
+                    ]), width = 4),
             dbc.Col(
                 dbc.InputGroup([
                     dbc.InputGroupText("Artículo 2 "),
                     dbc.Select(options = [], id = 'dropdown-similitud-art2'),
-                    ]), width = 5),
+                    ]), width = 4),
             dbc.Col(
-                dbc.Button("Buscar", id="button-similitud", n_clicks=0, disabled=True, style = {'textAlign': 'justify'}), 
-                width = 2),
+                dbc.InputGroup([
+                    dbc.InputGroupText("En base a "),
+                    dbc.Select(options = [
+                        {"label": "Keywords", "value": 1},
+                        {"label": "Abstract", "value": 2}
+                        ], id = 'Similitud-basada-en')
+                    ]), width = 2),
+            dbc.Col(
+                dbc.Button("Comparar artículos", id="button-similitud", n_clicks=0, disabled=True, style = {'textAlign': 'justify'}), 
+                width = 2, style = {'textAlign': 'right'}),
             ]),
         html.Br(),
         html.Div(id='resultados-similitud'),
@@ -146,6 +155,24 @@ layout = [html.Div([
             'padding-left':'40px', 
             'padding-right':'40px', 
             'padding-bottom':'40px'}),
+
+    html.Div([
+        html.H4('Buscar entre artículos'),
+        html.Br(),
+        html.P('¿Tiene alguna pregunta la cual desea responder a través de un artículo?'),
+        html.P("""Puede hacerlo!!! Busque entre todos los artículos de su colección algún tema en específico. El sistema le recomendará los 5 mejores
+               artículos que pueden resolver su enigma, ordenados de mayor a menor compatibilidad con su pregunta"""),
+        html.P('Nota: Procure usar términos técnicos para ofrecer una mejor calidad en los resultados'),
+        dbc.InputGroup([
+            dbc.Input(placeholder = 'Buscar entre artículos'),
+            dbc.Button('Buscar', id = 'search-in-articles', n_clicks=0)
+            ])
+        ], style = {
+            'textAlign': 'justify',
+            'padding-top':'20px', 
+            'padding-left':'40px', 
+            'padding-right':'40px', 
+            'padding-bottom':'40px'})
     ]
 
 
@@ -290,12 +317,39 @@ def opciones_similitud(cy_G):
         options = [{'label':x, 'value':x} for x in list_articulos] 
         return options, options 
 
+#____________ Obtener similitud
+@app.callback(Output('resultados-similitud', 'children'),
+              Input('button-similitud', 'n_clicks'),
+              State('graphCompleto', 'data'),
+              State('Similitud-basada-en', 'value'),
+              State('dropdown-similitud-art1', 'value'),
+              State('dropdown-similitud-art2', 'value'))
+def getSimilitud(n, cy_graph, parametro, art1, art2):
+    if n > 0:
+        G = convertCYToGraph(cy_graph)
+        similitud = 0
+        final = ''
+        if parametro == '1':   # Keywords
+            similitud = textf.similitudArticulosByKeywords(G, art1, art2)
+            final = 'en base a las Keywords de ambos artículos'
+        else:                # Abstract
+            similitud = textf.similitudArticulosByAbstract(G, art1, art2)
+            final = 'en base a los abstracts'
+        if similitud == -1:
+            return dbc.Alert('Uno o ambos artículos carecen de Abstract, por lo que no es posible obtener la similitud entre ellos', color="warning")
+        return dbc.Card(
+            dbc.CardBody([
+                html.P(['Los artículos ',
+                       html.Li(art1),
+                       html.Li(art2),
+                       ' son un ', html.Span(str(similitud * 100), style = {'font-weight': 'bold'}), '% similares entre si, ', final])
+                ]))
+
 #____________ Habilitar botón Similitud __________
 @app.callback(Output('button-similitud','disabled'),
-              Input('dropdown-similitud-art1', 'value'),
-              Input('dropdown-similitud-art2', 'value'))
-def activate_button_buscar(value1, value2):
-    if value1 == None or value2 == None:
+              Input('Similitud-basada-en', 'value'))
+def activate_button_buscar(value):
+    if value is None:
         return True
 
 

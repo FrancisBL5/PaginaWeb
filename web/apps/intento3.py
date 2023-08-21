@@ -4,9 +4,11 @@ import dash_cytoscape as cyto
 import pandas as pd
 import networkx as nx
 import base64, io
+import contextlib
 import json
 from apps import hassan as hs
 from apps import modelos as models
+from apps import text_functions as textf
 
 from app import app
 
@@ -324,8 +326,12 @@ def displayTapNodeData(data):
         ModalBody = [
             html.Div([html.H4(key), html.P(value)])
             for key, value in dict(data).items()
-            if key not in ['value', 'id', 'name', 'tipo']
+            if key not in ['value', 'id', 'name', 'tipo', 'Abstract']
             ]
+        with contextlib.suppress(Exception):
+            abstract = dict(data)['Abstract']
+            ModalBody.append(html.Div([html.H4('TLR'), html.P(textf.textSummarization(abstract))]))
+            ModalBody.append(html.Div([html.H4('Abstract'), html.P(abstract)]))
         return html.Div([
             dbc.Modal([
                 dbc.ModalHeader(dbc.ModalTitle(dict(data)['value']), close_button=False),
