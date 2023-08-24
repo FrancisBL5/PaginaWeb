@@ -37,16 +37,18 @@ app.layout = html.Div([
     html.Br(),
     html.Div(id='page-content', children=[]),
     # Almacenamiento de datos
-    dcc.Store(id='output-data-upload', storage_type='session'),  # DataFrame original
-    dcc.Store(id='sample_train', storage_type='session'),        # DataFrame de train
-    dcc.Store(id='sample_test', storage_type='session'),         # DataFrame de test
-    dcc.Store(id='nodes_catalogue', storage_type='session'),     # DataFrame de los node catalogue
-    dcc.Store(id='graphCompleto', storage_type='session'),       # Grafo completo
-    dcc.Store(id='graphSubCompleto', storage_type='session'),    # Sub grafo completo
-    dcc.Store(id='graphTrain', storage_type='session'),          # Grafo de train
-    dcc.Store(id='graphTrainSub', storage_type='session'),       # Grafo de train - sub
-    dcc.Store(id='graphTest', storage_type='session'),           # Grafo de test
-    dcc.Store(id='graphTestSub', storage_type='session')         # Grafp de test - sub
+    dcc.Store(id='output-data-upload'),  # DataFrame original
+    dcc.Store(id='sample_train'),        # DataFrame de train
+    dcc.Store(id='sample_test'),         # DataFrame de test
+    dcc.Store(id='nodes_catalogue'),     # DataFrame de los node catalogue
+    dcc.Store(id='graphCompleto'),       # Grafo completo
+    dcc.Store(id='graphSubCompleto'),    # Sub grafo completo
+    dcc.Store(id='graphTrain'),          # Grafo de train
+    dcc.Store(id='graphTrainSub'),       # Grafo de train - sub
+    dcc.Store(id='graphTest'),           # Grafo de test
+    dcc.Store(id='graphTestSub'),         # Grafp de test - sub
+    dcc.Store(id='matrizTFIDF-global'),
+    dcc.Store(id='BiGrams-list')
 ])
 
 
