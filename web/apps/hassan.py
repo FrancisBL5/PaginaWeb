@@ -19,7 +19,9 @@ def filterAndSplit(df_original):
     #Datos para grafo completo con autores filtrados
     df_original = df_original[df_original['Autor_norm'].isin(autores)]
     df_original = df_original.reset_index(drop = True)
+    return df_original, nodes_catalogue
 
+def createGraphs(df_original):
     #Se separan los datos de entrenamiento y prueba
     count_per_year = df_original['Año'].value_counts().sort_index().to_dict()
     ratio = 3/4 * sum(count_per_year.values())
@@ -60,7 +62,7 @@ def filterAndSplit(df_original):
     #nx.write_gml(G_test, 'BD_UNAM_Graph_test.gml')
     #nx.write_gml(G_sub_test, 'BD_UNAM_Sub_Graph_test.gml')
 
-    return G_completo, G_sub_completo, G_train, G_sub_train, G_test, G_sub_test, nodes_catalogue
+    return G_completo, G_sub_completo, G_train, G_sub_train, G_test, G_sub_test
     # sample_train, sample_test = createSamples(G_train, G_test, nodes_catalogue)
     # return getParameters(sample_train, sample_test, G_train, G_test, G_sub_train, G_sub_test)
 

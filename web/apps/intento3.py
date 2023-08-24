@@ -60,11 +60,13 @@ def createSubGraphArtAut(cyInt):
         for nodo in list(G.nodes())
         if G.nodes[nodo]['tipo'] not in ['keyword', 'afiliacion']
     ]
-    G_sub = G.subgraph(nodosArtAut).copy()
     # Asignar colores
+    G_sub = G.subgraph(nodosArtAut).copy()
+    pos = nx.spring_layout(G_sub)
     cy = nx.readwrite.json_graph.cytoscape_data(G_sub)
     for i in cy['elements']['nodes']:
         nodo = i['data']['name']
+        i.update({'position': {'x': pos[nodo][0]*10000, 'y': pos[nodo][1]*10000}})
         tipo = G.nodes[nodo]['tipo']
         if tipo == 'articulo':
             i.update({'style': {'background-color': '#FF0000'}})
@@ -154,7 +156,7 @@ layout = [html.Div([
     html.Div(dbc.Alert([
         html.H5("Advertencia", className="alert-heading"),
         html.P('Primero es necesario cargar un archivo con extensión .csv')], color="danger"), id='message'),
-    dcc.Interval(id="progress-interval", n_intervals=0, interval=400, disabled=False),
+    #dcc.Interval(id="progress-interval", n_intervals=0, interval=400, disabled=False),
     dbc.Progress(id="progress", value = 0, label = "", color='secondary', animated=True, style={"height": "30px"}),
     ], style = {
             'textAlign': 'justify',
@@ -177,9 +179,9 @@ layout = [html.Div([
                 html.H4('Grafo Completo', style={'textAlign': 'center'}),
                 cyto.Cytoscape(
                     id='cytoscape-event-callbacks_GraphComplete',
-                    minZoom = 0.1,
+                    minZoom = 0.05,
                     maxZoom = 6,
-                    layout={'name': 'cose'},
+                    layout={'name': 'preset'},
                     style={'width': '100%', 'height': '600px', 'background-color': '#EEEEEE'}),
                 html.Br(),
                 html.Div(id='cytoscape-tapNodeData-json'),
@@ -263,26 +265,28 @@ layout = [html.Div([
 #____________ Callbacks __________
 #____________ Recibir el archivo inicial
 @app.callback(Output('output-data-upload', 'data'),
+              Output('nodes_catalogue', 'data'),
               Output('message', 'children'),
               Input('upload-data', 'contents'),
               State('upload-data', 'filename'),
               prevent_initial_call = True)
 def upload_datos(list_of_contents, filename):
-    if list_of_contents is not None:
+    if list_of_contents is not None and filename is not None:
         try:
             if '.csv' in filename:
                 content_type, content_string = list_of_contents.split(',')
                 decoded = base64.b64decode(content_string)
                 df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
             else:
-                return [], dbc.Alert([
+                return [], [], dbc.Alert([
                             html.H5("Advertencia", className="alert-heading"),
                             html.P('El archivo cargado no tiene extensión .csv'),
                             html.P('Inténtalo de nuevo')], color="danger"),
         except Exception as e:
             print(e)
-            return [],html.Div(dbc.Alert("Algo raro pasa aquí", color="danger")),
-        return df.to_json(date_format='iso', orient='split'), []
+            return [],[],html.Div(dbc.Alert("Algo raro pasa aquí", color="danger")),
+        df_filter, nodes_catalogue = hs.filterAndSplit(df)      #Conservar solo autores filtrados y no toda la base
+        return df_filter.to_json(date_format='iso', orient='split'), nodes_catalogue.to_json(date_format='iso', orient='split'), []
 
 #____________ Obtener grafos
 @app.callback(Output('graphCompleto', 'data'),
@@ -291,19 +295,19 @@ def upload_datos(list_of_contents, filename):
               Output('graphTrainSub', 'data'),
               Output('graphTest', 'data'),
               Output('graphTestSub', 'data'),
-              Output('nodes_catalogue', 'data'),
               Input('output-data-upload', 'data'),
               prevent_initial_call = True)
 def getAllGraphs(jsonified_cleaned_data):
-    df = pd.read_json(jsonified_cleaned_data, orient='split')
-    G_completo, G_sub_completo, G_train, G_sub_train, G_test, G_sub_test, nodes_catalogue = hs.filterAndSplit(df)
-    cy_G_completo = convertGraphToCY(G_completo)
-    cy_G_sub_completo = convertGraphToCY(G_sub_completo)
-    cy_G_train = convertGraphToCY(G_train)
-    cy_G_sub_train = convertGraphToCY(G_sub_train)
-    cy_G_test = convertGraphToCY(G_test)
-    cy_G_sub_test = convertGraphToCY(G_sub_test)
-    return cy_G_completo, cy_G_sub_completo, cy_G_train, cy_G_sub_train, cy_G_test, cy_G_sub_test, nodes_catalogue.to_json(date_format='iso', orient='split')
+    if jsonified_cleaned_data is not None:
+        df = pd.read_json(jsonified_cleaned_data, orient='split')
+        G_completo, G_sub_completo, G_train, G_sub_train, G_test, G_sub_test = hs.createGraphs(df)
+        cy_G_completo = convertGraphToCY(G_completo)
+        cy_G_sub_completo = convertGraphToCY(G_sub_completo)
+        cy_G_train = convertGraphToCY(G_train)
+        cy_G_sub_train = convertGraphToCY(G_sub_train)
+        cy_G_test = convertGraphToCY(G_test)
+        cy_G_sub_test = convertGraphToCY(G_sub_test)
+        return cy_G_completo, cy_G_sub_completo, cy_G_train, cy_G_sub_train, cy_G_test, cy_G_sub_test
 
 # ___________ Dibujar grafo completo
 @app.callback(Output('cytoscape-event-callbacks_GraphComplete', 'elements'),
@@ -429,17 +433,18 @@ def predecir(nPredict, nRestart, Autor1, Autor2, deshabPredict, deshabRestar, cy
               Input('graphTestSub', 'data'),
               prevent_initial_call = True)
 def getSamples(cy_G_train, cy_G_test, nodes_catalogue_json, cy_G_sub_train, cy_G_sub_test):
-    G_train = convertCYToGraph(cy_G_train)
-    G_test = convertCYToGraph(cy_G_test)
-    G_sub_train = convertCYToGraph(cy_G_sub_train)
-    G_sub_test = convertCYToGraph(cy_G_sub_test)
-    nodes_catalogue = pd.read_json(nodes_catalogue_json, orient='split')
-    print("Nodes catalogue listo")
-    sample_train, sample_test = hs.createSamples(G_train, G_test, nodes_catalogue)
-    print("Samples vacios")
-    sample_train, sample_test = hs.getParameters(sample_train, sample_test, G_train, G_test, G_sub_train, G_sub_test)
-    print("Samples llenos")
-    return sample_train.to_json(date_format='iso', orient='split'), sample_test.to_json(date_format='iso', orient='split')
+    if cy_G_train is not None and cy_G_test is not None and cy_G_sub_train is not None and cy_G_sub_test is not None:
+        G_train = convertCYToGraph(cy_G_train)
+        G_test = convertCYToGraph(cy_G_test)
+        G_sub_train = convertCYToGraph(cy_G_sub_train)
+        G_sub_test = convertCYToGraph(cy_G_sub_test)
+        nodes_catalogue = pd.read_json(nodes_catalogue_json, orient='split')
+        print("Nodes catalogue listo")
+        sample_train, sample_test = hs.createSamples(G_train, G_test, nodes_catalogue)
+        print("Samples vacios")
+        sample_train, sample_test = hs.getParameters(sample_train, sample_test, G_train, G_test, G_sub_train, G_sub_test)
+        print("Samples llenos")
+        return sample_train.to_json(date_format='iso', orient='split'), sample_test.to_json(date_format='iso', orient='split')
 
 # ___________ Obtener Metricas de los modelos
 @app.callback(Output('res_bal', 'children'),
@@ -448,33 +453,41 @@ def getSamples(cy_G_train, cy_G_test, nodes_catalogue_json, cy_G_sub_train, cy_G
               Input('sample_test', 'data'),
               prevent_initial_call = True)
 def getMedidas(sample_train_json, sample_test_json):
-    df_sample_train = pd.read_json(sample_train_json, orient='split')
-    df_sample_test = pd.read_json(sample_test_json, orient='split')
-    res_bal, res_pos = models.transformVariables(df_sample_train, df_sample_test)
-    res_bal = dbc.Table.from_dataframe(round(res_bal,3), striped=True, bordered=True, hover=True)
-    res_pos = dbc.Table.from_dataframe(round(res_pos,3), striped=True, bordered=True, hover=True)
-    return res_bal,res_pos
+    if sample_train_json is not None and sample_test_json is not None:
+        df_sample_train = pd.read_json(sample_train_json, orient='split')
+        df_sample_test = pd.read_json(sample_test_json, orient='split')
+        res_bal, res_pos = models.transformVariables(df_sample_train, df_sample_test)
+        res_bal = dbc.Table.from_dataframe(round(res_bal,3), striped=True, bordered=True, hover=True)
+        res_pos = dbc.Table.from_dataframe(round(res_pos,3), striped=True, bordered=True, hover=True)
+        return res_bal,res_pos
 
 #__________ Actualizar progreso de la barra
 @app.callback(
-    [Output("progress", "value"), Output("progress", "label"), Output("progress-interval", "disabled"), Output("progress", "animated")],
-    Input("progress-interval", "n_intervals"),
-    State('message','children'),
-    State('upload-data', 'contents'),
-    State('output-data-upload', 'data'),
-    State('graphCompleto', 'data'),
-    State('sample_train', 'data'),
-    State('res_bal', 'children'))
-def update_progress(n, msg, dato_cargado, dato_html, grafo, sample, respuesta):
-    if dato_cargado is None or msg != []:
-        return 0, "", False, False
-    if dato_html is None:
-        return 15, "Procesando archivo", False, True
-    if grafo is None:
-        return 30, "Generando grafos", False, True
-    if sample is None:
-        return 45, "Generando samples", False, True
-    if respuesta is None:
-        return 60, "Compilando modelos", False, True
+    [Output("progress", "value"), Output("progress", "label"), Output("progress", "animated")],
+    #Input("progress-interval", "n_intervals"),
+    Input('output-data-upload', 'data'),
+    Input('graphCompleto', 'data'),
+    Input('sample_train', 'data'),
+    Input('res_bal', 'children'),
+    Input('cytoscape-event-callbacks_GraphComplete', 'elements'),
+    prevent_initial_call = True)
+def update_progress(dato_filtrado, grafo, sample, respuesta, grafico):
+    print('Entreeeeee')
+    if dato_filtrado is None:
+        print('uno')
+        return 0, "", False
+    elif grafo is None:
+        print('dos')
+        return 15, "Generando grafos", True
+    elif sample is None:
+        print('tres')
+        return 30, "Generando samples", True
+    elif respuesta is None:
+        print('cuatro')
+        return 60, "Compilando modelos", True
+    elif grafico is None:
+        print('cinco')
+        return 75, "Dibujando grafo", True
     else:
-        return 100, "Todo listo", True, False
+        print('entre al final')
+        return 100, "Todo listo", False

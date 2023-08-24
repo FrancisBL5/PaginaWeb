@@ -163,10 +163,8 @@ layout = [html.Div([
         html.P("""Puede hacerlo!!! Busque entre todos los artículos de su colección algún tema en específico. El sistema le recomendará los 5 mejores
                artículos que pueden resolver su enigma, ordenados de mayor a menor compatibilidad con su pregunta"""),
         html.P('Nota: Procure usar términos técnicos para ofrecer una mejor calidad en los resultados'),
-        dbc.InputGroup([
-            dbc.Input(placeholder = 'Buscar entre artículos'),
-            dbc.Button('Buscar', id = 'search-in-articles', n_clicks=0)
-            ])
+        html.Div(id = 'boton-inicial-para-TF-IDF'), # Mostrar advertencia para crear matriz/mostrar cuadro de entrada a pregunta
+        dbc.Spinner(html.Div(id='resultados-busqueda-tecnica'))
         ], style = {
             'textAlign': 'justify',
             'padding-top':'20px', 
@@ -331,18 +329,20 @@ def getSimilitud(n, cy_graph, parametro, art1, art2):
         final = ''
         if parametro == '1':   # Keywords
             similitud = textf.similitudArticulosByKeywords(G, art1, art2)
+            if similitud == -1:
+                return dbc.Alert('Uno o ambos artículos carecen de Keywords, por lo que no es posible obtener la similitud entre ellos', color="warning")
             final = 'en base a las Keywords de ambos artículos'
         else:                # Abstract
             similitud = textf.similitudArticulosByAbstract(G, art1, art2)
+            if similitud == -1:
+                return dbc.Alert('Uno o ambos artículos carecen de Abstract, por lo que no es posible obtener la similitud entre ellos', color="warning")
             final = 'en base a los abstracts'
-        if similitud == -1:
-            return dbc.Alert('Uno o ambos artículos carecen de Abstract, por lo que no es posible obtener la similitud entre ellos', color="warning")
         return dbc.Card(
             dbc.CardBody([
                 html.P(['Los artículos ',
                        html.Li(art1),
                        html.Li(art2),
-                       ' son un ', html.Span(str(similitud * 100), style = {'font-weight': 'bold'}), '% similares entre si, ', final])
+                       ' son un ', html.Span(f'{str(similitud * 100)}%', style = {'font-weight': 'bold'}), ' similares entre si, ', final])
                 ]))
 
 #____________ Habilitar botón Similitud __________
@@ -352,4 +352,75 @@ def activate_button_buscar(value):
     if value is None:
         return True
 
+#____________ Mostrar entre crear matriz o buscar directamente
+@app.callback(Output('boton-inicial-para-TF-IDF', 'children'),
+              Input('matrizTFIDF-global', 'data'))
+def showCreateMatriz_search(df):
+    if df is None:
+        return [dbc.Row([
+            dbc.Col(width=2),
+            dbc.Col([
+                dbc.Alert('Antes de comenzar necesita generar la matriz TF/IDF. Para ello, comience dando click en \'Generar matriz TF/IDF\'', color = 'warning')
+                ], width=6),
+            dbc.Col([
+                dbc.Button('Generar matriz TF/IDF', n_clicks=0, id = 'Crear-matrizTFIDF')
+                ], width=2)
+            ])
+        ]
+    return [dbc.InputGroup([
+            dbc.Input(placeholder = 'Buscar entre artículos', id='search-in-articles-text'),
+            dbc.Button('Buscar', id = 'search-in-articles', n_clicks=0)
+            ])
+        ]
 
+# _____________ Bloquear boton de generar matriz
+@app.callback(Output('Crear-matrizTFIDF', 'disabled'),
+              Input('Crear-matrizTFIDF', 'n_clicks'),
+              State('matrizTFIDF-global', 'data'))
+def disableBoton(n, matriz):
+    return n > 0 and matriz is None
+
+# _____________ Obtener corpus y biGrams
+@app.callback(Output('BiGrams-list', 'data'),
+              Input('Crear-matrizTFIDF', 'n_clicks'),
+              State('output-data-upload', 'data'))
+def createCorpusAndBiGrams(n, df_json):
+    if n > 0:
+        df = pd.read_json(df_json, orient='split')
+        print('Generando corpus...')
+        texto = textf.createCorpus(df)
+        print('Generando BiGrams...')
+        return textf.foundBiGrams(texto)
+
+# _____________ Obtener matriz TF/IDF
+@app.callback(Output('matrizTFIDF-global', 'data'),
+              Input('BiGrams-list', 'data'),
+              State('graphCompleto', 'data'))
+def createMatriz(BiGrams, graph_cy):
+    if BiGrams is not None:
+        G = convertCYToGraph(graph_cy)
+        print('Generando matriz...')
+        df = textf.createGlobalMatriz(G, BiGrams)
+        print('wuuuuu')
+        return df.to_json(date_format='iso', orient='split')
+
+# _____________ Realizar búsqueda
+@app.callback(Output('resultados-busqueda-tecnica', 'children'),
+              Input('search-in-articles', 'n_clicks'),
+              State('search-in-articles-text', 'value'),
+              State('BiGrams-list', 'data'),
+              State('matrizTFIDF-global', 'data'))
+def searchInArticles(n, pregunta, biGrams, matrizTFIDF_JSON):
+    if pregunta is not None and n > 0:
+        matriz = pd.read_json(matrizTFIDF_JSON, orient='split')
+        respuesta = textf.answerQuestion(matriz, pregunta, biGrams)
+        final_response = [
+            html.Li([titulo, '--- similitud: ', rows['similitud'].round(2)])
+            for titulo, rows in respuesta.iterrows()
+        ]
+        return [dbc.Card([
+            dbc.CardBody([
+                html.P('Los siguientes artículos son recomendados: '),
+                html.Div(final_response)])
+                ])
+            ]
