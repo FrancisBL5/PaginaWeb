@@ -1,9 +1,11 @@
 from dash import Dash, html, dash_table, dcc, callback, Output, Input, State
+from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 import dash_cytoscape as cyto
 import pandas as pd
 import networkx as nx
 import base64, io
+import sys
 import contextlib
 import json
 from apps import hassan as hs
@@ -11,6 +13,16 @@ from apps import modelos as models
 from apps import text_functions as textf
 
 from app import app
+
+
+#importar csv de github
+#url = 'https://raw.githubusercontent.com/FrancisBL5/PaginaWeb/main/web/datasets/UNAM_Completo_Corregido.csv'
+#df_original = pd.read_csv(url,index_col=0)
+
+#importar csv de la carpeta datasets
+sys.path.append('../')
+df_original = pd.read_csv('datasets/UNAM_Completo_Corregido.csv')
+
 
 def convertGraphToCY(G):
     """Función que transforma un grafo de NetworkX en un Cytoscape JSON format"""
@@ -140,23 +152,16 @@ def resultLinkPrediction(lista_resultados):
 layout = [html.Div([
     html.H2('Carga de Datos'),
     html.Br(),
-    html.P('Cargue el archivo .csv que contiene los datos.'),
-    dcc.Upload(id='upload-data', children = html.Div([
-        'Drag and Drop or ',
-        html.A('Select Files')]), style={
-                'height': '60px',
-                'lineHeight': '60px',
-                'borderWidth': '3px',
-                'borderStyle': 'dashed',
-                'borderRadius': '10px',
-                'textAlign': 'center',
-                'margin': '10px'},
-        ),
+    dbc.Label('Elige una opción:'),
+    dbc.RadioItems(options=[
+        {'label':'Utilizar Base de Datos de la UNAM', 'value':1},
+        {'label':'Utilizar Base de Datos propia', 'value':2},
+        ], value=1, persistence = True, persistence_type = 'session', inline = True, id='radioitems-bd'),
     html.Br(),
-    html.Div(dbc.Alert([
-        html.H5("Advertencia", className="alert-heading"),
-        html.P('Primero es necesario cargar un archivo con extensión .csv')], color="danger"), id='message'),
+    html.Div(id = 'carga-datos'),
+    html.Div(id = 'alerta'),
     #dcc.Interval(id="progress-interval", n_intervals=0, interval=400, disabled=False),
+    html.H4('Barra de progreso'),
     dbc.Progress(id="progress", value = 0, label = "", color='secondary', animated=True, style={"height": "30px"}),
     ], style = {
             'textAlign': 'justify',
@@ -173,6 +178,8 @@ layout = [html.Div([
             html.Span('Artículo', style = {'color':'red'}), ' se mostrarán en ',
             html.Span('rojo', style = {'color':'red'}), '''. Al hacer clic en ellos se mostrará su nombre en el 
                 recuadro debajo del grafo. También es posible alejar y acercar el grafo.''']),
+        html.P('''Espere unos segundos a que cargue el grafo. En el caso de estar usando la Base de Datos UNAM, 
+            la espera será de aproximadamente 10 segundos.'''),
         html.Br(),
         dbc.Row([
             dbc.Col([
@@ -263,30 +270,62 @@ layout = [html.Div([
     ]
 
 #____________ Callbacks __________
+#____________ Decisión BD
+@app.callback(Output('carga-datos', 'children'),
+              Output('alerta','children'),
+              Input('radioitems-bd', 'value'))
+def decide_bd(valor):
+    print(valor)
+    if valor == 2:
+        return [html.P('Cargue el archivo .csv que contiene los datos.'),
+                dcc.Upload(id='upload-data', children = html.Div([
+                    'Drag and Drop or ',
+                    html.A('Select Files')]), style={
+                        'height': '60px',
+                        'lineHeight': '60px',
+                        'borderWidth': '3px',
+                        'borderStyle': 'dashed',
+                        'borderRadius': '10px',
+                        'textAlign': 'center',
+                        'margin': '10px'},
+                    ),
+                html.Br()], [html.Div(dbc.Alert([
+                    html.H5("Advertencia", className="alert-heading"),
+                    html.P('Primero es necesario cargar un archivo con extensión .csv')
+                    ], color="danger"), id = 'message')]
+    return [html.Div(dcc.Upload(id='upload-data'))],[html.Div(id='message')]
+
 #____________ Recibir el archivo inicial
 @app.callback(Output('output-data-upload', 'data'),
               Output('nodes_catalogue', 'data'),
               Output('message', 'children'),
+              Input('radioitems-bd','value'),
               Input('upload-data', 'contents'),
               State('upload-data', 'filename'),
               prevent_initial_call = True)
-def upload_datos(list_of_contents, filename):
-    if list_of_contents is not None and filename is not None:
-        try:
-            if '.csv' in filename:
-                content_type, content_string = list_of_contents.split(',')
-                decoded = base64.b64decode(content_string)
-                df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
-            else:
-                return [], [], dbc.Alert([
-                            html.H5("Advertencia", className="alert-heading"),
-                            html.P('El archivo cargado no tiene extensión .csv'),
-                            html.P('Inténtalo de nuevo')], color="danger"),
-        except Exception as e:
-            print(e)
-            return [],[],html.Div(dbc.Alert("Algo raro pasa aquí", color="danger")),
-        df_filter, nodes_catalogue = hs.filterAndSplit(df)      #Conservar solo autores filtrados y no toda la base
+def upload_datos(bd_option, list_of_contents, filename):
+    print('valor ' + str(bd_option))
+    if bd_option == 2:
+        if list_of_contents is not None and filename is not None:
+            try:
+                if '.csv' in filename:
+                    content_type, content_string = list_of_contents.split(',')
+                    decoded = base64.b64decode(content_string)
+                    df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
+                else:
+                    return [], [], dbc.Alert([
+                                html.H5("Advertencia", className="alert-heading"),
+                                html.P('El archivo cargado no tiene extensión .csv'),
+                                html.P('Inténtalo de nuevo')], color="danger"),
+            except Exception as e:
+                print(e)
+                return [],[],html.Div(dbc.Alert("Algo raro pasa aquí", color="danger")),
+            df_filter, nodes_catalogue = hs.filterAndSplit(df)      #Conservar solo autores filtrados y no toda la base
+            return df_filter.to_json(date_format='iso', orient='split'), nodes_catalogue.to_json(date_format='iso', orient='split'), []
+    else: 
+        df_filter, nodes_catalogue = hs.filterAndSplit(df_original)      #Conservar solo autores filtrados y no toda la base
         return df_filter.to_json(date_format='iso', orient='split'), nodes_catalogue.to_json(date_format='iso', orient='split'), []
+    raise PreventUpdate
 
 #____________ Obtener grafos
 @app.callback(Output('graphCompleto', 'data'),
@@ -311,11 +350,11 @@ def getAllGraphs(jsonified_cleaned_data):
 
 # ___________ Dibujar grafo completo
 @app.callback(Output('cytoscape-event-callbacks_GraphComplete', 'elements'),
-              Input('graphCompleto', 'data'),
-              prevent_initial_call = True)
+              Input('graphCompleto', 'data'))
 def drawGraphComplete(cy_graphComplete):
     if cy_graphComplete is not None:
         return createSubGraphArtAut(cy_graphComplete)
+    raise PreventUpdate
 
 # ___________ Mostrar atributos de un nodo
 @callback(Output('cytoscape-tapNodeData-json', 'children'),
@@ -450,8 +489,7 @@ def getSamples(cy_G_train, cy_G_test, nodes_catalogue_json, cy_G_sub_train, cy_G
 @app.callback(Output('res_bal', 'children'),
               Output('res_pos', 'children'),
               Input('sample_train', 'data'),
-              Input('sample_test', 'data'),
-              prevent_initial_call = True)
+              Input('sample_test', 'data'))
 def getMedidas(sample_train_json, sample_test_json):
     if sample_train_json is not None and sample_test_json is not None:
         df_sample_train = pd.read_json(sample_train_json, orient='split')
@@ -460,6 +498,7 @@ def getMedidas(sample_train_json, sample_test_json):
         res_bal = dbc.Table.from_dataframe(round(res_bal,3), striped=True, bordered=True, hover=True)
         res_pos = dbc.Table.from_dataframe(round(res_pos,3), striped=True, bordered=True, hover=True)
         return res_bal,res_pos
+    raise PreventUpdate
 
 #__________ Actualizar progreso de la barra
 @app.callback(
