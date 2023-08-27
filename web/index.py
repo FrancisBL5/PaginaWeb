@@ -7,11 +7,11 @@ from app import app
 from app import server
 
 # Connect to your app pages
-from apps import home, intento3, consultas
+from apps import home, grafo_y_pred, consultas
 
 navbar = dbc.NavbarSimple(
     children=[
-        dbc.NavItem(dbc.NavLink("Grafo y Predicción", href="/apps/intento3")),
+        dbc.NavItem(dbc.NavLink("Grafo y Predicción", href="/apps/grafo_y_pred")),
         dbc.NavItem(dbc.NavLink("Consultas", href="/apps/consultas")),
         #dbc.DropdownMenu(
         #    children=[
@@ -55,8 +55,8 @@ app.layout = html.Div([
 @app.callback(Output('page-content', 'children'),
               [Input('url', 'pathname')])
 def display_page(pathname):
-    if pathname == '/apps/intento3':
-        return intento3.layout
+    if pathname == '/apps/grafo_y_pred':
+        return grafo_y_pred.layout
     if pathname == '/apps/consultas':
         return consultas.layout
     return home.layout

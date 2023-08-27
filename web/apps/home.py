@@ -3,7 +3,7 @@ from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
 
 from app import app
-from apps import home, intento3, consultas
+from apps import home, grafo_y_pred, consultas
 
 
 #Contenido de tab1: carga de datos
@@ -52,7 +52,7 @@ tab1_content = dbc.Card(
                 html.Img(src = '/assets/img/csv.png', width = 800)]),
             html.Br(),
             html.Br(),
-            html.Div(dbc.Button("Empezar con la carga de datos", color="primary", id='button-carga', outline=True, href='/apps/intento3'), 
+            html.Div(dbc.Button("Empezar con la carga de datos", color="primary", id='button-carga', outline=True, href='/apps/grafo_y_pred'), 
                 className="d-grid gap-2 col-6 mx-auto"),
             html.Div(id='redirect-datos')
         ]))
@@ -285,7 +285,7 @@ def tab_content(active_tab):
              Input("button-carga", "n_clicks"))
 def click_carga(b_carga):
     if b_carga != None and b_carga > 0:
-        return intento3.layout
+        return grafo_y_pred.layout
 
 @app.callback(Output("redirect-consultas", "children"), 
              Input("button-consultas", "n_clicks"))
