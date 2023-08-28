@@ -1,4 +1,4 @@
-from dash import Dash, html, dash_table, dcc, callback, Output, Input, State
+from dash import Dash, html, dash_table, dcc, callback, Output, Input, State, no_update
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 import dash_cytoscape as cyto
@@ -161,8 +161,15 @@ layout = [html.Div([
     html.Div(id = 'carga-datos'),
     html.Div(id = 'alerta'),
     #dcc.Interval(id="progress-interval", n_intervals=0, interval=400, disabled=False),
-    html.H4('Barra de progreso'),
-    dbc.Progress(id="progress", value = 0, label = "", color='secondary', animated=True, style={"height": "30px"}),
+    #html.H4('Barra de progreso'),
+    #dbc.Progress(id="progress", value = 0, label = "", color='secondary', animated=True, style={"height": "30px"}),
+    html.Div([
+        html.Div(id='progress-1'),
+        html.Div(id='progress-2'),
+        html.Div(id='progress-3'),
+        html.Div(id='progress-4'),
+        html.Div(id='progress-5'),
+        ], id='general-progress')
     ], style = {
             'textAlign': 'justify',
             'padding-top':'20px', 
@@ -299,6 +306,7 @@ def decide_bd(valor):
 @app.callback(Output('output-data-upload', 'data'),
               Output('nodes_catalogue', 'data'),
               Output('message', 'children'),
+              Output('progress-1', 'children'),
               Input('radioitems-bd','value'),
               Input('upload-data', 'contents'),
               State('upload-data', 'filename'),
@@ -316,15 +324,15 @@ def upload_datos(bd_option, list_of_contents, filename):
                     return [], [], dbc.Alert([
                                 html.H5("Advertencia", className="alert-heading"),
                                 html.P('El archivo cargado no tiene extensión .csv'),
-                                html.P('Inténtalo de nuevo')], color="danger"),
+                                html.P('Inténtalo de nuevo')], color="danger"), no_update
             except Exception as e:
                 print(e)
-                return [],[],html.Div(dbc.Alert("Algo raro pasa aquí", color="danger")),
+                return [],[],html.Div(dbc.Alert("Algo raro pasa aquí", color="danger")), no_update
             df_filter, nodes_catalogue = hs.filterAndSplit(df)      #Conservar solo autores filtrados y no toda la base
-            return df_filter.to_json(date_format='iso', orient='split'), nodes_catalogue.to_json(date_format='iso', orient='split'), []
+            return df_filter.to_json(date_format='iso', orient='split'), nodes_catalogue.to_json(date_format='iso', orient='split'), [], dbc.Progress(value = 15, label = "Generando grafos", animated=True, color='secondary', style={"height": "30px"})
     else: 
         df_filter, nodes_catalogue = hs.filterAndSplit(df_original)      #Conservar solo autores filtrados y no toda la base
-        return df_filter.to_json(date_format='iso', orient='split'), nodes_catalogue.to_json(date_format='iso', orient='split'), []
+        return df_filter.to_json(date_format='iso', orient='split'), nodes_catalogue.to_json(date_format='iso', orient='split'), [], dbc.Progress(value = 15, label = "Generando grafos", animated=True, color='secondary', style={"height": "30px"})
     raise PreventUpdate
 
 #____________ Obtener grafos
@@ -334,6 +342,7 @@ def upload_datos(bd_option, list_of_contents, filename):
               Output('graphTrainSub', 'data'),
               Output('graphTest', 'data'),
               Output('graphTestSub', 'data'),
+              Output('progress-2', 'children'),
               Input('output-data-upload', 'data'),
               prevent_initial_call = True)
 def getAllGraphs(jsonified_cleaned_data):
@@ -346,14 +355,15 @@ def getAllGraphs(jsonified_cleaned_data):
         cy_G_sub_train = convertGraphToCY(G_sub_train)
         cy_G_test = convertGraphToCY(G_test)
         cy_G_sub_test = convertGraphToCY(G_sub_test)
-        return cy_G_completo, cy_G_sub_completo, cy_G_train, cy_G_sub_train, cy_G_test, cy_G_sub_test
+        return cy_G_completo, cy_G_sub_completo, cy_G_train, cy_G_sub_train, cy_G_test, cy_G_sub_test, dbc.Progress(value = 30, label = "Generando samples", animated=True, color='secondary', style={"height": "30px"})
 
 # ___________ Dibujar grafo completo
 @app.callback(Output('cytoscape-event-callbacks_GraphComplete', 'elements'),
+              Output('progress-5', 'children'),
               Input('graphCompleto', 'data'))
 def drawGraphComplete(cy_graphComplete):
     if cy_graphComplete is not None:
-        return createSubGraphArtAut(cy_graphComplete)
+        return createSubGraphArtAut(cy_graphComplete), dbc.Progress(value = 100, label = "Completado", color='secondary', style={"height": "30px"})
     raise PreventUpdate
 
 # ___________ Mostrar atributos de un nodo
@@ -465,6 +475,7 @@ def predecir(nPredict, nRestart, Autor1, Autor2, deshabPredict, deshabRestar, cy
 # ___________ Obtener samples
 @app.callback(Output('sample_train', 'data'),
               Output('sample_test', 'data'),
+              Output('progress-3', 'children'),
               Input('graphTrain', 'data'),
               Input('graphTest', 'data'),
               Input('nodes_catalogue', 'data'),
@@ -483,11 +494,12 @@ def getSamples(cy_G_train, cy_G_test, nodes_catalogue_json, cy_G_sub_train, cy_G
         print("Samples vacios")
         sample_train, sample_test = hs.getParameters(sample_train, sample_test, G_train, G_test, G_sub_train, G_sub_test)
         print("Samples llenos")
-        return sample_train.to_json(date_format='iso', orient='split'), sample_test.to_json(date_format='iso', orient='split')
+        return sample_train.to_json(date_format='iso', orient='split'), sample_test.to_json(date_format='iso', orient='split'), dbc.Progress(value = 60, label = "Compilando modelos", animated=True, color='secondary', style={"height": "30px"})
 
 # ___________ Obtener Metricas de los modelos
 @app.callback(Output('res_bal', 'children'),
               Output('res_pos', 'children'),
+              Output('progress-4', 'children'),
               Input('sample_train', 'data'),
               Input('sample_test', 'data'))
 def getMedidas(sample_train_json, sample_test_json):
@@ -497,9 +509,10 @@ def getMedidas(sample_train_json, sample_test_json):
         res_bal, res_pos = models.transformVariables(df_sample_train, df_sample_test)
         res_bal = dbc.Table.from_dataframe(round(res_bal,3), striped=True, bordered=True, hover=True)
         res_pos = dbc.Table.from_dataframe(round(res_pos,3), striped=True, bordered=True, hover=True)
-        return res_bal,res_pos
+        return res_bal,res_pos, dbc.Progress(value = 75, label = "Dibujando grafo", animated=True, color='secondary', style={"height": "30px"})
     raise PreventUpdate
 
+"""
 #__________ Actualizar progreso de la barra
 @app.callback(
     [Output("progress", "value"), Output("progress", "label"), Output("progress", "animated")],
@@ -529,4 +542,12 @@ def update_progress(dato_filtrado, grafo, sample, respuesta, grafico):
         return 75, "Dibujando grafo", True
     else:
         print('entre al final')
-        return 100, "Todo listo", False
+        return 100, "Todo listo", False"""
+
+@app.callback(
+    Output("general-progress", "children"),
+    Input('progress-5', 'children'),)
+def update_progress(progreso):
+    if progreso is not None:
+        return ''
+    raise PreventUpdate
