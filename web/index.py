@@ -46,7 +46,8 @@ app.layout = html.Div([
     dcc.Store(id='graphTrain'),          # Grafo de train
     dcc.Store(id='graphTrainSub'),       # Grafo de train - sub
     dcc.Store(id='graphTest'),           # Grafo de test
-    dcc.Store(id='graphTestSub'),         # Grafp de test - sub
+    dcc.Store(id='graphTestSub'),        # Grafo de test - sub
+    dcc.Store(id='subGraphAutArt'),      # Sub Grafo Autor Articulo 
     dcc.Store(id='matrizTFIDF-global'),
     dcc.Store(id='BiGrams-list')
 ])
