@@ -1,4 +1,5 @@
 from dash import Dash, html, dash_table, dcc, callback, Output, Input, State
+from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 import dash_cytoscape as cyto
 import pandas as pd
@@ -365,7 +366,12 @@ def showCreateMatriz_search(df):
             dbc.Col([
                 dbc.Button('Generar matriz TF/IDF', n_clicks=0, id = 'Crear-matrizTFIDF')
                 ], width=2)
-            ])
+            ]),
+        dbc.Progress([
+            dbc.Progress(value=0, id='progressMatriz-1', bar=True, color='secondary', animated=True, style={"height": "30px"}),
+            dbc.Progress(value=0, id='progressMatriz-2', bar=True, color='secondary', animated=True, style={"height": "30px"}),
+            dbc.Progress(value=0, id='progressMatriz-3', bar=True, color='secondary', animated=True, style={"height": "30px"})]
+            , style={"height": "30px"})
         ]
     return [dbc.InputGroup([
             dbc.Input(placeholder = 'Buscar entre artículos', id='search-in-articles-text'),
@@ -375,34 +381,40 @@ def showCreateMatriz_search(df):
 
 # _____________ Bloquear boton de generar matriz
 @app.callback(Output('Crear-matrizTFIDF', 'disabled'),
+              Output('progressMatriz-1', 'value'),
+              Output('progressMatriz-1', 'label'),
               Input('Crear-matrizTFIDF', 'n_clicks'),
               State('matrizTFIDF-global', 'data'))
 def disableBoton(n, matriz):
-    return n > 0 and matriz is None
+    if n > 0 and matriz is None:
+        return True, 15, 'Generando corpus y biGrams...'
+    raise PreventUpdate
 
 # _____________ Obtener corpus y biGrams
 @app.callback(Output('BiGrams-list', 'data'),
+              Output('progressMatriz-2', 'value'),
+              Output('progressMatriz-2', 'label'),
               Input('Crear-matrizTFIDF', 'n_clicks'),
               State('output-data-upload', 'data'))
 def createCorpusAndBiGrams(n, df_json):
     if n > 0:
         df = pd.read_json(df_json, orient='split')
-        print('Generando corpus...')
         texto = textf.createCorpus(df)
-        print('Generando BiGrams...')
-        return textf.foundBiGrams(texto)
+        return textf.foundBiGrams(texto), 45, 'Obteniendo matriz TF/IDF...'
+    raise PreventUpdate
 
 # _____________ Obtener matriz TF/IDF
 @app.callback(Output('matrizTFIDF-global', 'data'),
+              Output('progressMatriz-3', 'value'),
+              Output('progressMatriz-3', 'label'),
               Input('BiGrams-list', 'data'),
               State('graphCompleto', 'data'))
 def createMatriz(BiGrams, graph_cy):
     if BiGrams is not None:
         G = convertCYToGraph(graph_cy)
-        print('Generando matriz...')
         df = textf.createGlobalMatriz(G, BiGrams)
-        print('wuuuuu')
-        return df.to_json(date_format='iso', orient='split')
+        return df.to_json(date_format='iso', orient='split'), 40, 'Completado'
+    raise PreventUpdate
 
 # _____________ Realizar búsqueda
 @app.callback(Output('resultados-busqueda-tecnica', 'children'),
