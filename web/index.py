@@ -7,12 +7,13 @@ from app import app
 from app import server
 
 # Connect to your app pages
-from apps import home, grafo_y_pred, consultas
+from apps import home, grafo_y_pred, consultas, consultas_grafo
 
 navbar = dbc.NavbarSimple(
     children=[
         dbc.NavItem(dbc.NavLink("Grafo y Predicción", href="/apps/grafo_y_pred")),
         dbc.NavItem(dbc.NavLink("Consultas", href="/apps/consultas")),
+        dbc.NavItem(dbc.NavLink("Consultas con Grafo", href="/apps/consultas_grafo")),
         #dbc.DropdownMenu(
         #    children=[
         #        dbc.DropdownMenuItem("lol", header=True),
@@ -60,6 +61,8 @@ def display_page(pathname):
         return grafo_y_pred.layout
     if pathname == '/apps/consultas':
         return consultas.layout
+    if pathname == '/apps/consultas_grafo':
+        return consultas_grafo.layout
     return home.layout
 
 
