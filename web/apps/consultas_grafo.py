@@ -90,16 +90,19 @@ def createSubGraph(cyInt, elementos, opcion):
             i.update({'style': {'background-color': '#FF0000'}})
         elif tipo == 'autor':
             i.update({'style': {'background-color': '#0000FF'}})
+            if nodo in elementos:
+                i.update({'style': {'background-color': '#87CEEB'}})
         elif tipo == 'keyword':
             i.update({'style': {'background-color': '#4CBB17'}})
         elif tipo == 'afiliacion':
             i.update({'style': {'background-color': '#FFD900'}})
         else:
             i.update({'style': {'background-color': '#0F0000'}})
-        
+
         if nodo in elementos:
-            i['style']['shape'] = 'rectangle'
             i['data']['label'] = nodo
+        else:
+            i['data']['label'] = ''
 
     return cy['elements']
 

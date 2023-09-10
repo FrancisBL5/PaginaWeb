@@ -1,5 +1,6 @@
 from dash import Dash, html, dcc
 import dash_bootstrap_components as dbc
+from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output
 
 # Connect to main app.py file
@@ -12,18 +13,15 @@ from apps import home, grafo_y_pred, consultas, consultas_grafo
 navbar = dbc.NavbarSimple(
     children=[
         dbc.NavItem(dbc.NavLink("Grafo y Predicción", href="/apps/grafo_y_pred")),
-        dbc.NavItem(dbc.NavLink("Consultas", href="/apps/consultas")),
-        dbc.NavItem(dbc.NavLink("Consultas con Grafo", href="/apps/consultas_grafo")),
-        #dbc.DropdownMenu(
-        #    children=[
-        #        dbc.DropdownMenuItem("lol", header=True),
-        #        dbc.DropdownMenuItem("jsjsjs", href=""),
-        #        dbc.DropdownMenuItem("aiuda", href=""),
-        #    ],
-        #    nav=True,
-        #    in_navbar=True,
-        #    label="More",
-        #),
+        dbc.DropdownMenu(
+            children=[
+                dbc.DropdownMenuItem("Descriptivas", id = 'cons-desc', href="/apps/consultas", disabled = True),
+                dbc.DropdownMenuItem("Grafo Interactivo", id = 'cons-grafo', href="/apps/consultas_grafo", disabled = True),
+            ],
+            nav=True,
+            in_navbar=True,
+            label="Consultas",
+        ),
     ],
     brand="BD UNAM",
     brand_href="/apps/home",
@@ -53,7 +51,8 @@ app.layout = html.Div([
     dcc.Store(id='BiGrams-list')
 ])
 
-
+#____________Callbacks_______
+#__________Mostrar layout correspondiente_________
 @app.callback(Output('page-content', 'children'),
               [Input('url', 'pathname')])
 def display_page(pathname):
@@ -64,6 +63,15 @@ def display_page(pathname):
     if pathname == '/apps/consultas_grafo':
         return consultas_grafo.layout
     return home.layout
+
+#__________Mostrar layout correspondiente_________
+@app.callback(Output('cons-desc', 'disabled'),
+              Output('cons-grafo', 'disabled'),
+              Input('output-data-upload', 'data'),
+              prevent_initial_call = True)
+def activate_refs(data):
+    if data is not None:
+        return False, False
 
 
 if __name__ == '__main__':
