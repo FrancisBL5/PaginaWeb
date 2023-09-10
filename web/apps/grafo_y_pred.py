@@ -8,6 +8,8 @@ import base64, io
 import sys
 import contextlib
 import json
+import joblib
+
 from apps import hassan as hs
 from apps import modelos as models
 from apps import text_functions as textf
@@ -133,7 +135,6 @@ def resultLinkPrediction(lista_resultados):
     contador = {}
     for elem in lista_resultados:
         contador[elem] = contador.get(elem, 0) + 1
-    contador
     for key, value in contador.items():
         if value > 3:
             if key == 0:
@@ -469,7 +470,12 @@ def predecir(nPredict, nRestart, Autor1, Autor2, deshabPredict, deshabRestar, cy
             df_test = pd.read_json(json_df_test, orient='split')
             G = convertCYToGraph(cy_G)
             G_sub = convertCYToGraph(cy_G_sub)
-            resultadosLinkPrediction = models.predecir(Autor1,Autor2, G, G_sub, df_test)
+
+            modelos = []
+            for i in range(6):
+                modelos.append(joblib.load('datasets/modelo{}.joblib'.format(i)))
+
+            resultadosLinkPrediction = models.predecir(Autor1,Autor2, G, G_sub, df_test, modelos)
             if resultadosLinkPrediction == {} or resultadosLinkPrediction is None:
                 listArticles = lookForArticles(Autor1, Autor2, G)
                 return True, False, modalArticles(Autor1, Autor2, listArticles)
@@ -514,6 +520,7 @@ def getSamples(cy_G_train, cy_G_test, nodes_catalogue_json, cy_G_sub_train, cy_G
 # ___________ Obtener Metricas de los modelos
 @app.callback(Output('res_bal', 'children'),
               Output('res_pos', 'children'),
+              #Output('modelos', 'data'),
               Output('progress-4', 'value'),
               Output('progress-4', 'label'),
               Input('sample_train', 'data'),
@@ -522,9 +529,13 @@ def getMedidas(sample_train_json, sample_test_json):
     if sample_train_json is not None and sample_test_json is not None:
         df_sample_train = pd.read_json(sample_train_json, orient='split')
         df_sample_test = pd.read_json(sample_test_json, orient='split')
-        res_bal, res_pos = models.transformVariables(df_sample_train, df_sample_test)
+        modelos, res_bal, res_pos = models.transformVariables(df_sample_train, df_sample_test)
         res_bal = dbc.Table.from_dataframe(round(res_bal,3), striped=True, bordered=True, hover=True)
         res_pos = dbc.Table.from_dataframe(round(res_pos,3), striped=True, bordered=True, hover=True)
+
+        for i in range(6):
+            joblib.dump(modelos[i], 'datasets/modelo{}.joblib'.format(i))
+
         return res_bal,res_pos, 15, 'Dibujando grafo...'
     raise PreventUpdate
 
