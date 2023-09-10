@@ -82,8 +82,7 @@ def createSubGraph(cyInt, elementos, opcion):
     G_sub = G.subgraph(nodos).copy()
 
     cy = nx.readwrite.json_graph.cytoscape_data(G_sub)
-    print(cy)
-
+    
     for i in cy['elements']['nodes']:
         nodo = i['data']['name']
         tipo = G.nodes[nodo]['tipo']
