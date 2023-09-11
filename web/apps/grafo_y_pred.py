@@ -25,6 +25,8 @@ from app import app
 sys.path.append('../')
 df_original = pd.read_csv('datasets/UNAM_Completo_Corregido.csv')
 
+buffer_array = []
+buffer = io.BytesIO()
 
 def convertGraphToCY(G):
     """Función que transforma un grafo de NetworkX en un Cytoscape JSON format"""
@@ -473,7 +475,8 @@ def predecir(nPredict, nRestart, Autor1, Autor2, deshabPredict, deshabRestar, cy
 
             modelos = []
             for i in range(6):
-                modelos.append(joblib.load('datasets/modelo{}.joblib'.format(i)))
+                #modelos.append(joblib.load('datasets/modelo{}.joblib'.format(i)))
+                modelos.append(joblib.load(buffer_array[i]))
 
             resultadosLinkPrediction = models.predecir(Autor1,Autor2, G, G_sub, df_test, modelos)
             if resultadosLinkPrediction == {} or resultadosLinkPrediction is None:
@@ -534,7 +537,9 @@ def getMedidas(sample_train_json, sample_test_json):
         res_pos = dbc.Table.from_dataframe(round(res_pos,3), striped=True, bordered=True, hover=True)
 
         for i in range(6):
-            joblib.dump(modelos[i], 'datasets/modelo{}.joblib'.format(i))
+            #joblib.dump(modelos[i], 'datasets/modelo{}.joblib'.format(i))
+            joblib.dump(modelos[i], buffer)
+            buffer_array.append(buffer)
 
         return res_bal,res_pos, 15, 'Dibujando grafo...'
     raise PreventUpdate
