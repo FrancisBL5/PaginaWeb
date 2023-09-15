@@ -9,6 +9,7 @@ import sys
 import contextlib
 import json
 import joblib
+from datetime import datetime
 
 from apps import hassan as hs
 from apps import modelos as models
@@ -318,7 +319,7 @@ def decide_bd(valor):
               State('upload-data', 'filename'),
               prevent_initial_call = True)
 def upload_datos(bd_option, list_of_contents, filename):
-    print('valor ' + str(bd_option))
+    #print('valor ' + str(bd_option))
     if bd_option == 2:
         if list_of_contents is not None and filename is not None:
             try:
@@ -465,18 +466,20 @@ def showSelectedAutors(dataSel, opcion, textAutor1, textAutor2):
               State('graphCompleto', 'data'),
               State('graphSubCompleto', 'data'),
               State('sample_test', 'data'),
+              State('modelos_fechas','data'),
               prevent_initial_call = True)
-def predecir(nPredict, nRestart, Autor1, Autor2, deshabPredict, deshabRestar, cy_G, cy_G_sub, json_df_test):
+def predecir(nPredict, nRestart, Autor1, Autor2, deshabPredict, deshabRestar, cy_G, cy_G_sub, json_df_test, fechas):
     if nPredict > 0 and (Autor1 != 'Autor 1' and Autor2 != 'Autor 2') and deshabRestar == True:
         if Autor1 != Autor2:
             df_test = pd.read_json(json_df_test, orient='split')
             G = convertCYToGraph(cy_G)
             G_sub = convertCYToGraph(cy_G_sub)
 
-            modelos = []
+            modelos = []       
+
             for i in range(6):
-                #modelos.append(joblib.load('datasets/modelo{}.joblib'.format(i)))
-                modelos.append(joblib.load(buffer_array[i]))
+                modelos.append(joblib.load('assets/modelos/modelo{}-{}.joblib'.format(i,fechas[i])))
+                #modelos.append(joblib.load(buffer_array[i]))
 
             resultadosLinkPrediction = models.predecir(Autor1,Autor2, G, G_sub, df_test, modelos)
             if resultadosLinkPrediction == {} or resultadosLinkPrediction is None:
@@ -523,7 +526,7 @@ def getSamples(cy_G_train, cy_G_test, nodes_catalogue_json, cy_G_sub_train, cy_G
 # ___________ Obtener Metricas de los modelos
 @app.callback(Output('res_bal', 'children'),
               Output('res_pos', 'children'),
-              #Output('modelos', 'data'),
+              Output('modelos_fechas', 'data'),
               Output('progress-4', 'value'),
               Output('progress-4', 'label'),
               Input('sample_train', 'data'),
@@ -536,12 +539,16 @@ def getMedidas(sample_train_json, sample_test_json):
         res_bal = dbc.Table.from_dataframe(round(res_bal,3), striped=True, bordered=True, hover=True)
         res_pos = dbc.Table.from_dataframe(round(res_pos,3), striped=True, bordered=True, hover=True)
 
+        fechas = []
         for i in range(6):
-            #joblib.dump(modelos[i], 'datasets/modelo{}.joblib'.format(i))
-            joblib.dump(modelos[i], buffer)
-            buffer_array.append(buffer)
+            now = datetime.now()
+            str_fecha = '{}-{}-{}-{}-{}-{}'.format(now.year,now.month,now.day,now.hour,now.minute,now.second)
+            joblib.dump(modelos[i], 'assets/modelos/modelo{}-{}.joblib'.format(str(i),str_fecha))
+            fechas.append(str_fecha)
+            #joblib.dump(modelos[i], buffer)
+            #buffer_array.append(buffer)
 
-        return res_bal,res_pos, 15, 'Dibujando grafo...'
+        return res_bal,res_pos, fechas, 15, 'Dibujando grafo...'
     raise PreventUpdate
 
 # Reiniciar barra
