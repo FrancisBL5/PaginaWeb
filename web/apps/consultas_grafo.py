@@ -10,6 +10,12 @@ from apps import consultas_functions as cf
 
 from app import app
 
+nombres_areas = {'TC': 'Teoría de la Computación',
+                    'ISBD': 'Ingeniería de Software y Bases de Datos',
+                    'SIAV': 'Señales, Imágenes y Ambientes Virtuales',
+                    'IA': 'Inteligencia Artificial',
+                    'RS': 'Redes y Seguridad en Cómputo'}
+
 def convertCYToGraph(cy):
     """Función que transforma un Cytoscape JSON y devuelve un grafo G de NetworkX"""
     G = nx.Graph()
@@ -179,8 +185,7 @@ def update_opciones_buscar(value, cy_G, jsonified_cleaned_data):
         df = pd.read_json(jsonified_cleaned_data, orient='split')
         list_autores, list_articulos, list_afiliaciones, list_keywords = getCatalogues(G)
         list_years = list(df['Año'].unique())
-        list_area = list(df['Area'].unique())
-
+        list_areas = list(df['Area'].unique())
         options = []
         
         if value == '1':
@@ -190,7 +195,9 @@ def update_opciones_buscar(value, cy_G, jsonified_cleaned_data):
         elif value == '3':
              options = list_afiliaciones
         elif value == '4':
-            options = list_area
+            for area in list_areas:
+                if area in list(nombres_areas.keys()):
+                    options.append(area + ' - ' + nombres_areas[area])
         elif value == '5':
             options = list_years
   
@@ -205,6 +212,14 @@ def update_opciones_buscar(value, cy_G, jsonified_cleaned_data):
               prevent_initial_call = True)
 def consultas_frec(n_clicks, cy_G, opcion, elementos):
     if cy_G is not None and n_clicks > 0:
+        if opcion == '4':      
+            elementos_area = []
+            for elemento in elementos:
+                if elemento.split('-')[0].strip() in nombres_areas.keys():
+                    elementos_area.append(elemento.split('-')[0].strip())
+                else:
+                    elementos_area.append(elemento)
+            return createSubGraph(cy_G, elementos_area, opcion)  
         return createSubGraph(cy_G, elementos, opcion)
 
 # ___________ Mostrar atributos de un nodo
