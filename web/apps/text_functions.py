@@ -84,7 +84,7 @@ def similitudArticulosByKeywords(G: nx.Graph, articulo_x: str, articulo_y: str):
     """
     keywords_x = getKeywords(G, articulo_x)
     keywords_y = getKeywords(G, articulo_y)
-    vector_keywords = keywords_x
+    vector_keywords = getKeywords(G, articulo_x)
     Xi = 0
     Yi = 0
     XY = 0
@@ -95,7 +95,7 @@ def similitudArticulosByKeywords(G: nx.Graph, articulo_x: str, articulo_y: str):
                 vector_keywords.append(keyword)
 
         matriz = pd.DataFrame(columns = vector_keywords, index = ['x','y'])       #matriz con las keywords como columnas y los artículos como filas
-        for keyword in vector_keywords:           #se coloca un 1 en la matriz si la keyword se encuentra en algún artículo
+        for keyword in vector_keywords:         #se coloca un 1 en la matriz si la keyword se encuentra en algún artículo
             if keyword in keywords_x:
                 matriz.loc['x',keyword] = 1
             if keyword in keywords_y:
@@ -130,7 +130,7 @@ def similitudArticulosByAbstract(G: nx.Graph, articulo_x: str, articulo_y: str):
         words_y = filtrarTexto(G.nodes[articulo_y]['Abstract'])
     except Exception as e:
         return -1
-    vector_words = words_x
+    vector_words = filtrarTexto(G.nodes[articulo_x]['Abstract'])
     Xi = 0
     Yi = 0
     XY = 0
