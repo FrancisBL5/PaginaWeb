@@ -170,6 +170,9 @@ def runModels(X_train, y_train, X_test, y_test):
     bagging = np.zeros_like(y_test)
     bp = {}
 
+    bandera_cv = False
+    modelos_finales = []
+
     for i, modelo in enumerate(modelos):
         #print(modelos_nombres[i])
         #print(str(modelo))
@@ -180,8 +183,14 @@ def runModels(X_train, y_train, X_test, y_test):
             bp[modelos_nombres[i]] = modelo.best_params_
             #print("Mejores parámetros en CV Randomized Search:")
             #print(modelo.best_params_)
+            modelos_finales.append(modelo.best_estimator_)
+            bandera_cv = True
         except:
             pass #Cuando no es CV
+        if not bandera_cv:
+            modelos_finales.append(modelo)
+        bandera_cv = False
+
         #print(classification_report(y_test, y_pred, target_names=['Colaboro', 'No colaboro']))
         p, r, f, _ = precision_recall_fscore_support(y_test, y_pred, average = 'weighted')
         p_pos, r_pos, f_pos, _ = precision_recall_fscore_support(y_test, y_pred, pos_label=None)
@@ -200,6 +209,8 @@ def runModels(X_train, y_train, X_test, y_test):
 
 
     model.fit(X_train, y_train, epochs=100, verbose=False)
+    modelos_finales.append(model)
+
     y_pred = np.round(model.predict(X_test))
     np.add(bagging, y_pred.reshape(len(y_pred)), casting='unsafe')
     #bagging += y_pred.reshape(len(y_pred))
@@ -242,14 +253,14 @@ def runModels(X_train, y_train, X_test, y_test):
     #res_bal.to_csv('resultados_balanceados.csv')
     #res_pos.to_csv('resultados_positivos.csv')
 
-    return res_bal, res_pos
+    return modelos_finales, res_bal, res_pos
 
 #data = pd.read_csv('sample_features_train.csv', index_col = 0)
 #data_test = pd.read_csv('sample_features_test.csv', index_col = 0)
 
 #transformVariables(data, data_test)
 
-def predecir(autor1,autor2, G, G_sub, data_test):
+def predecir(autor1,autor2, G, G_sub, data_test, modelos):
     if autor1 not in G_sub.neighbors(autor2):
         # 1. Obtención de parámetros
         sum_neighbors = len(ft.neighbors(G,autor1)) + len(ft.neighbors(G,autor2))
@@ -280,12 +291,14 @@ def predecir(autor1,autor2, G, G_sub, data_test):
 
         # 3. Concatenación de DataFrames
         df = pd.concat([X_test, registro]).reset_index(drop=True)
+       
         # 4. Normalización de valores
         prueba = scaler.fit_transform(df.values)
-
         prueba = pd.DataFrame(prueba)
+        
         # 5. Separación de la última fila
         prueba = prueba.tail(n=1).values
+        
         resultadosList = []
         for modelo in modelos:
             # 6. Predicción

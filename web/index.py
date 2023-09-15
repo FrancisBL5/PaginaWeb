@@ -48,7 +48,8 @@ app.layout = html.Div([
     dcc.Store(id='graphTestSub'),        # Grafo de test - sub
     dcc.Store(id='subGraphAutArt'),      # Sub Grafo Autor Articulo 
     dcc.Store(id='matrizTFIDF-global'),
-    dcc.Store(id='BiGrams-list')
+    dcc.Store(id='BiGrams-list'),
+    dcc.Store(id='modelos_fechas'),     #fechas de archivos de modelos
 ])
 
 #____________Callbacks_______

@@ -8,6 +8,9 @@ import base64, io
 import sys
 import contextlib
 import json
+import joblib
+from datetime import datetime
+
 from apps import hassan as hs
 from apps import modelos as models
 from apps import text_functions as textf
@@ -23,6 +26,8 @@ from app import app
 sys.path.append('../')
 df_original = pd.read_csv('datasets/UNAM_Completo_Corregido.csv')
 
+buffer_array = []
+buffer = io.BytesIO()
 
 def convertGraphToCY(G):
     """Función que transforma un grafo de NetworkX en un Cytoscape JSON format"""
@@ -133,7 +138,6 @@ def resultLinkPrediction(lista_resultados):
     contador = {}
     for elem in lista_resultados:
         contador[elem] = contador.get(elem, 0) + 1
-    contador
     for key, value in contador.items():
         if value > 3:
             if key == 0:
@@ -315,7 +319,7 @@ def decide_bd(valor):
               State('upload-data', 'filename'),
               prevent_initial_call = True)
 def upload_datos(bd_option, list_of_contents, filename):
-    print('valor ' + str(bd_option))
+    #print('valor ' + str(bd_option))
     if bd_option == 2:
         if list_of_contents is not None and filename is not None:
             try:
@@ -462,14 +466,22 @@ def showSelectedAutors(dataSel, opcion, textAutor1, textAutor2):
               State('graphCompleto', 'data'),
               State('graphSubCompleto', 'data'),
               State('sample_test', 'data'),
+              State('modelos_fechas','data'),
               prevent_initial_call = True)
-def predecir(nPredict, nRestart, Autor1, Autor2, deshabPredict, deshabRestar, cy_G, cy_G_sub, json_df_test):
+def predecir(nPredict, nRestart, Autor1, Autor2, deshabPredict, deshabRestar, cy_G, cy_G_sub, json_df_test, fechas):
     if nPredict > 0 and (Autor1 != 'Autor 1' and Autor2 != 'Autor 2') and deshabRestar == True:
         if Autor1 != Autor2:
             df_test = pd.read_json(json_df_test, orient='split')
             G = convertCYToGraph(cy_G)
             G_sub = convertCYToGraph(cy_G_sub)
-            resultadosLinkPrediction = models.predecir(Autor1,Autor2, G, G_sub, df_test)
+
+            modelos = []       
+
+            for i in range(6):
+                modelos.append(joblib.load('assets/modelos/modelo{}-{}.joblib'.format(i,fechas[i])))
+                #modelos.append(joblib.load(buffer_array[i]))
+
+            resultadosLinkPrediction = models.predecir(Autor1,Autor2, G, G_sub, df_test, modelos)
             if resultadosLinkPrediction == {} or resultadosLinkPrediction is None:
                 listArticles = lookForArticles(Autor1, Autor2, G)
                 return True, False, modalArticles(Autor1, Autor2, listArticles)
@@ -514,6 +526,7 @@ def getSamples(cy_G_train, cy_G_test, nodes_catalogue_json, cy_G_sub_train, cy_G
 # ___________ Obtener Metricas de los modelos
 @app.callback(Output('res_bal', 'children'),
               Output('res_pos', 'children'),
+              Output('modelos_fechas', 'data'),
               Output('progress-4', 'value'),
               Output('progress-4', 'label'),
               Input('sample_train', 'data'),
@@ -522,10 +535,20 @@ def getMedidas(sample_train_json, sample_test_json):
     if sample_train_json is not None and sample_test_json is not None:
         df_sample_train = pd.read_json(sample_train_json, orient='split')
         df_sample_test = pd.read_json(sample_test_json, orient='split')
-        res_bal, res_pos = models.transformVariables(df_sample_train, df_sample_test)
+        modelos, res_bal, res_pos = models.transformVariables(df_sample_train, df_sample_test)
         res_bal = dbc.Table.from_dataframe(round(res_bal,3), striped=True, bordered=True, hover=True)
         res_pos = dbc.Table.from_dataframe(round(res_pos,3), striped=True, bordered=True, hover=True)
-        return res_bal,res_pos, 15, 'Dibujando grafo...'
+
+        fechas = []
+        for i in range(6):
+            now = datetime.now()
+            str_fecha = '{}-{}-{}-{}-{}-{}'.format(now.year,now.month,now.day,now.hour,now.minute,now.second)
+            joblib.dump(modelos[i], 'assets/modelos/modelo{}-{}.joblib'.format(str(i),str_fecha))
+            fechas.append(str_fecha)
+            #joblib.dump(modelos[i], buffer)
+            #buffer_array.append(buffer)
+
+        return res_bal,res_pos, fechas, 15, 'Dibujando grafo...'
     raise PreventUpdate
 
 # Reiniciar barra
