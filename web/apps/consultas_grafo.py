@@ -6,6 +6,8 @@ import networkx as nx
 import numpy as np
 import base64, io
 import json
+import contextlib
+
 from apps import consultas_functions as cf
 
 from app import app
@@ -232,14 +234,31 @@ def displayTapNodeData(data):
             dbc.CardHeader(html.H5(dict(data)['value']))
             ], color = 'info', outline = True)
     elif dict(data)['tipo'] == 'articulo':
-        return dbc.Card([
-            dbc.CardHeader(html.H5(dict(data)['value'])),
-            dbc.CardBody([
-                html.Div([html.H5(key), html.P(value)])
-                for key, value in dict(data).items()
-                if key not in ['value', 'id', 'name', 'tipo', 'Abstract']
-                ])
-            ], color = 'danger', outline = True)  
+        ModalBody = [
+            html.Div([html.H4(key), html.P(value)])
+            for key, value in dict(data).items()
+            if key not in ['value', 'id', 'name', 'tipo', 'Abstract','label']
+            ]
+        with contextlib.suppress(Exception):
+            abstract = dict(data)['Abstract']
+            ModalBody.append(html.Div([html.H4('Abstract'), html.P(abstract)]))
+        return html.Div([
+            dbc.Modal([
+                dbc.ModalHeader(dbc.ModalTitle(dict(data)['value']), close_button=False),
+                dbc.ModalBody(ModalBody),
+                dbc.ModalFooter(
+                    dbc.Button("Close", id="close-backdrop-cg", className="ms-auto", n_clicks=0))
+                ],
+                id="modal-atributos-articulo-cg",
+                scrollable=True,
+                is_open=False),
+            dbc.Card([
+                dbc.CardHeader(html.H5(dict(data)['value'])),
+                dbc.CardBody([
+                    dbc.Button("Abrir detalles", id="open-details-cg", n_clicks=0, color='success', outline=True),
+                    ])
+                ], color = 'danger', outline = True),
+            ])
     elif dict(data)['tipo'] == 'keyword':
         return dbc.Card([
             dbc.CardHeader(html.H5(dict(data)['value']))
@@ -248,3 +267,19 @@ def displayTapNodeData(data):
         return dbc.Card([
             dbc.CardHeader(html.H5(dict(data)['value']))
             ], color = 'warning', outline = True)
+
+# ___________ Abrir/cerrar modal de los detalles de un artículo
+@app.callback(Output("modal-atributos-articulo-cg", "is_open"),
+             [Input("open-details-cg", "n_clicks"), Input("close-backdrop-cg", "n_clicks")],
+             State("modal-atributos-articulo-cg", "is_open"),
+             prevent_initial_call = True)
+def toggle_modal(n1, n2, is_open):
+    return not is_open if n1 or n2 else is_open
+
+# ___________ Abrir/cerrar modal de la lista de artículos
+@app.callback(Output("modal-lista-articulo-cg", "is_open"),
+             [Input("close-lista-cg", "n_clicks"), Input("open-articles-cg", "n_clicks")],
+             State("modal-lista-articulo-cg", "is_open"),
+             prevent_initial_call = True)
+def toggle_modal(n1, n2, is_open):
+    return not is_open if n1 or n2 else is_open
