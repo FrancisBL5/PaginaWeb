@@ -117,7 +117,6 @@ def createSubGraph(cyInt, elementos, opcion):
 
 layout = [html.Div([
     html.H2('Consultas con Grafo Interactivo'),
-    html.Br(),
     ], style = {
             'textAlign': 'justify',
             'padding-top':'20px', 

@@ -10,9 +10,12 @@ from apps import home, grafo_y_pred, consultas
 tab1_content = dbc.Card(
     dbc.CardBody([
         dbc.Row([
-            html.P('''Lo primero es cargar a la página web un archivo con extensión .csv donde se encuentren todos
-                los datos necesarios para crear los modelos. Cada registro del archivo representa un artículo escrito
-                por un autor.'''),
+            html.P('''La página web por defecto tiene cargada la Base de Datos de la UNAM. Sin embargo, es posible 
+                cargar una base de datos propia con las siguientes características:'''),
+            html.Li('Debe ser un archivo con extensión .csv'),
+            html.Li('Cada registro del archivo debe representar un artículo escrito por un autor'),
+            html.Br(),
+            html.Br(),
             html.P('''Los campos necesarios en el archivo son: ''')]),
         dbc.Row([
             dbc.Col([
@@ -50,6 +53,17 @@ tab1_content = dbc.Card(
             dbc.Row([
                 html.P('Ejemplo de una base de datos correcta:'),
                 html.Img(src = '/assets/img/csv.png', width = 800)]),
+            html.Br(),
+            html.Br(),
+            html.P(['Al ingesar a la página ', html.Span('Grafo y Predicción', style = {'font-weight': 'bold'}), 
+                ''' se mostrará un menú que permite escoger entre usar la BD UNAM y cargar una base de datos propia.
+               El botón de la BD UNAM estará seleccionado por defecto; sin embargo, al seleccionar el otro botón se 
+               mostrará un recuadro donde es posible arrastrar o subir el nuevo archivo.''']),
+            dbc.Row([
+                dbc.Col(width = 2),
+                dbc.Col(html.Img(src = '/assets/img/carga-bd-propia.png', width = '100%')),
+                dbc.Col(width = 2),
+                ]),
             html.Br(),
             html.Br(),
             html.Div(dbc.Button("Empezar con la carga de datos", color="primary", id='button-carga', outline=True, href='/apps/grafo_y_pred'), 
@@ -186,17 +200,88 @@ tab5_content = dbc.Card(
             su precisión y confiabilidad.'''),
         ]))
 
-#Contenido de tab6: Consultas
+#Contenido de tab6: Consultas Descriptivas
 tab6_content = dbc.Card(
     dbc.CardBody([
-        html.P('''Aquí puedes mover e interactuar con cada componente del grafo creado. Al dar clic en un nodo o
-            arista, se muestra la información que representa ese nodo o arista. También, se colorea cada nodo según
-            su tipo: Artículo, Autor, Dependencia o Keyword.'''),
-        html.P('''Además de eso se pueden hacer consultas a la base de datos por Autor, por Título, por Keyword y más.'''),
-        html.Div(dbc.Button("Empezar con las consultas", color="primary", id='button-consultas', outline=True, href='/apps/consultas'), 
+        html.P('''En esta página es posible hacer consultas sobre la información incluida en la base de datos. 
+            Se pueden hacer 4 tipos de consultas:'''),
+        dbc.Accordion([
+            dbc.AccordionItem([
+                html.P('''Estas consultas se basan en la búsqueda de un autor, artículo, keyword o afilición según otro 
+                atributo. Por ejemplo, buscar un autor según una afiliación específica.'''),
+                html.Img(src = '/assets/img/consultas-d-1.png', width = '90%')
+                ], title="Búsqueda de Autor, Artículo, Keyword o Afiliación"),
+            dbc.AccordionItem([
+                html.P('''Aquí se pueden hacer consultas sobre autores, artículos, áreas de conocimiento, keywords y
+                afiliaciones que tienen el mayor número de elementos pertenecientes a algún otro atributo. Por ejemplo,
+                ¿qué autor tiene más colaboradores?'''),
+                html.Img(src = '/assets/img/consultas-d-2.png', width = '95%')
+                ], title="Consultas por Frecuencia"),
+            dbc.AccordionItem([
+                html.P('''En esta consulta se seleccionan dos artículos de la base de datos y se calcula que tan similares
+                    son de 0 a 100%. Esta similitud se puede calcular en base a las palabras clave de ambos artículos o en
+                    base a su abstract.'''), 
+                html.Img(src = '/assets/img/consultas-d-3.png', width = '100%')
+                ], title="Similitud entre artículos"),
+            dbc.AccordionItem([
+                html.P(['''Aquí se puede incluir una pregunta técnica escrita por el usuario para obtener artículos que podrían
+                    contestar esa pregunta. Para ello, es necesario generar una matriz TF/IDF por lo que se debe dar click en
+                    el botón ''', html.Span('Generar matriz TF/IDF', style = {'font-weight': 'bold'}),'.']),
+                html.P('''Al hacer esto se muestra una barra que indica el progreso en la generación de la matriz. Este proceso
+                    tardará aproximadamente 1 minuto.'''),
+                html.Img(src = '/assets/img/consultas-d-4.png', width = '100%'),
+                html.P('Una vez que la matriz está lista, aparecerá un campo donde es posible incluir la pregunta técnica.'),
+                html.P('''Nota: dado que los artículos están escritos en inglés, se obtendrán mejores resultado con una 
+                    pregunta en inglés.'''),
+                html.Img(src = '/assets/img/consultas-d-5.png', width = '100%'),
+                ], title="Buscar entre artículos"),
+            ]),
+        html.Br(),
+        html.P(['Para que esta página funcione correctamente, es necesario primero generar los grafos dentro de la página ',
+            html.Span('Grafo y Predicción', style = {'font-weight': 'bold'}), ' ya sea de usando la BD UNAM o una base',
+            ' de datos propia']),
+        html.Br(),
+        html.Div(dbc.Button("Generar grafos", color="primary", id='button-grafos', outline=True, href='/apps/grafo_y_pred'), 
                 className="d-grid gap-2 col-6 mx-auto"),
-            html.Div(id='redirect-consultas')
+            html.Div(id='redirect-grafo')
         ]))
+
+#Contenido de tab7: Consultas con Subgrafos
+tab7_content = dbc.Card(
+    dbc.CardBody([
+        html.P('''Esta consulta permite generar subgrafos a partir del grafo completo con solo ciertos nodos que comparten 
+            una característica. Se pueden generar subgrafos por:'''),
+        dbc.Row([
+            dbc.Col([
+                html.Li('Autor y coautores'),
+                html.Li('Keywords y artículos'),
+                html.Li('Afiliación y autores'),
+                html.Li('Área de conocimiento de artículos'),
+                html.Li('Año de publicación de artículos'),
+                html.Br(),
+                html.P(['''Una vez generado el subgrafo, se puede acercar y alejar así como también se puede hacer clic en los distintos 
+                    nodos para obtener su información. Los nodos ''',
+                    html.Span('keywords', style = {'color':'#4CBB17'}), ' se mostrarán en ',
+                    html.Span('verde', style = {'color':'#4CBB17'}), ', los nodos ',
+                    html.Span('autores', style = {'color':'blue'}), ' se mostrarán en ',
+                    html.Span('azul', style = {'color':'blue'}), ', los nodos ',
+                    html.Span('artículo', style = {'color':'red'}), ' se mostrarán en ',
+                    html.Span('rojo', style = {'color':'red'}), ' y los nodos ',
+                    html.Span('afilición', style = {'color':'#FFD900'}), ' se mostrarán en ',
+                    html.Span('amarillo', style = {'color':'#FFD900'}), '.'
+                    ]),
+                ], width = 6),
+            dbc.Col(html.Img(src = '/assets/img/consultas-g.png', width = '100%'), width = 6)
+            ]),
+        html.P(['Para que esta página funcione correctamente, es necesario primero generar los grafos dentro de la página ',
+            html.Span('Grafo y Predicción', style = {'font-weight': 'bold'}), ' ya sea de usando la BD UNAM o una base',
+            ' de datos propia']),
+        html.Br(),
+        html.Div(dbc.Button("Generar grafos", color="primary", id='button-grafos2', outline=True, href='/apps/grafo_y_pred'), 
+                className="d-grid gap-2 col-6 mx-auto"),
+            html.Div(id='redirect-grafo')
+        ]))
+
 
 
 layout = [html.Div([
@@ -205,15 +290,42 @@ layout = [html.Div([
         html.H5('''Predicción de enlaces en redes sociales utilizando
                 Teoría de Grafos y Aprendizaje Supervisado ''')], style={'textAlign':'center'}),
 
-    #html.Div([
-    #    html.Br(),
-    #    html.P('''Intro'''),
-    #    ], style = {
-    #        'textAlign': 'justify',
-    #        'padding-top':'20px', 
-    #        'padding-left':'40px', 
-    #        'padding-right':'40px', 
-    #        'padding-bottom':'40px'}),
+    html.Div([
+        html.Br(),
+        html.P(['Esta aplicación web tiene como objetivo el análisis de una ', 
+            html.Span('red social', style = {'font-weight': 'bold'}),
+            ''' construida a partir de una base de datos que guarda información sobre las publicaciones, 
+            artículos y otros escritos que han hecho distintos académicos dentro del área de la ''',
+            html.Span('Ciencia e Ingeniería de la Computación', style = {'font-weight': 'bold'}), ' en la ',
+            html.Span('Universidad Nacional Autónoma de México', style = {'font-weight': 'bold'}),
+            '''. El análisis y la construcción de la red social se realiza mediante la teoría de grafos y el 
+            aprendizaje supervisado. ''']),
+        dbc.Card(
+            dbc.CardBody([
+                html.P('''A través de la aplicación web es posible realizar las siguientes actividades:'''),
+                dbc.Row([
+                    dbc.Col([
+                        html.Li('Carga de una base de datos propia'),
+                        html.Li('Generación del grafo que modela la red social'),
+                        html.Li('Predicción de enlaces entre dos autores'),
+                        html.Li('Obtención de la validación de los modelos de machine learning'),
+                        html.Li('Consultas descriptivas sobre la información de la base de datos'),
+                        ]),
+                    dbc.Col([
+                        html.Li('Consultas de frecuencia de los campos de la base de datos'),
+                        html.Li('Cálculo de la similitud entre dos artículos'),
+                        html.Li('Obtención de artículos que podrían responder una pregunta técinica dada'),
+                        html.Li('Obtención del resúmen del abstract de un artículo'),
+                        html.Li('Generación de subgrafos interactivos con características específicas'),]),
+                    ]),
+                ]),
+            )
+        ], style = {
+            'textAlign': 'justify',
+            'padding-top':'20px', 
+            'padding-left':'40px', 
+            'padding-right':'40px', 
+            'padding-bottom':'40px'}),
 
     html.Div([
         html.Br(),
@@ -254,7 +366,8 @@ layout = [html.Div([
                     dbc.Tab(label="Creación de modelos", tab_id="tab-3"),
                     dbc.Tab(label="Validación de modelos", tab_id="tab-4"),
                     dbc.Tab(label="Predicción de enlaces", tab_id="tab-5"),
-                    dbc.Tab(label="Consultas", tab_id="tab-6"),
+                    dbc.Tab(label="Consultas Descriptivas", tab_id="tab-6"),
+                    dbc.Tab(label="Consultas con Subgrafos", tab_id="tab-7"),
                 ], id="card-tabs", active_tab="tab-1",)),
             dbc.CardBody(html.P(id="card-content", className="card-text")),
             ])
@@ -279,7 +392,9 @@ def tab_content(active_tab):
         return tab4_content
     if active_tab == 'tab-5':
         return tab5_content
-    return tab6_content
+    if active_tab == 'tab-6':
+        return tab6_content
+    return tab7_content
 
 @app.callback(Output("redirect-datos", "children"), 
              Input("button-carga", "n_clicks"))
@@ -287,8 +402,10 @@ def click_carga(b_carga):
     if b_carga != None and b_carga > 0:
         return grafo_y_pred.layout
 
-@app.callback(Output("redirect-consultas", "children"), 
-             Input("button-consultas", "n_clicks"))
-def click_carga(b_carga):
-    if b_carga != None and b_carga > 0:
-        return consultas.layout
+@app.callback(Output("redirect-grafo", "children"), 
+             Input("button-grafos", "n_clicks"),
+             Input("button-grafos2", "n_clicks"))
+def click_carga(b_grafo1, b_grafo2):
+    if (b_grafo1 != None and b_grafo1 > 0) or (b_grafo2 != None and b_grafo2 > 0):
+        return grafo_y_pred.layout
+

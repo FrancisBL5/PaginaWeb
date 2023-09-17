@@ -42,8 +42,7 @@ def getCatalogues(G):
     return list_autores, list_articulos, list_afiliaciones
 
 layout = [html.Div([
-    html.H2('Consultas'),
-    html.Br(),
+    html.H2('Consultas Descriptivas'),
     ], style = {
             'textAlign': 'justify',
             'padding-top':'20px', 
@@ -123,8 +122,8 @@ layout = [html.Div([
     html.Div([
         html.H4('Similitud entre Artículos'),
         html.Br(),
-        html.P('''Dado dos artículos, se muestra la similitud entre ambos. La similitud se representa como un número 
-            de 0 al 1, donde 1 siginifica que los artículos son iguales y 0 que no existe ninguna similitud.'''),
+        html.P('''Dado dos artículos, se muestra la similitud entre ambos. La similitud se representa como un porcentaje 
+            de 0 al 100%, donde 100% siginifica que los artículos son iguales y 0% que no existe ninguna similitud.'''),
         dbc.Row([
             dbc.Col(
                 dbc.InputGroup([
@@ -161,8 +160,9 @@ layout = [html.Div([
         html.H4('Buscar entre artículos'),
         html.Br(),
         html.P('¿Tiene alguna pregunta la cual desea responder a través de un artículo?'),
-        html.P("""Puede hacerlo!!! Busque entre todos los artículos de su colección algún tema en específico. El sistema le recomendará los 5 mejores
-               artículos que pueden resolver su enigma, ordenados de mayor a menor compatibilidad con su pregunta"""),
+        html.P('''¡Puede hacerlo! Busque entre todos los artículos de la base de dato algún tema en específico. 
+            El sistema le recomendará los 5 mejores artículos que pueden resolver su enigma, ordenados de mayor a 
+            menor compatibilidad con su pregunta. '''),
         html.P('Nota: Procure usar términos técnicos para ofrecer una mejor calidad en los resultados'),
         html.Div(id = 'boton-inicial-para-TF-IDF'), # Mostrar advertencia para crear matriz/mostrar cuadro de entrada a pregunta
         dbc.Spinner(html.Div(id='resultados-busqueda-tecnica'))
