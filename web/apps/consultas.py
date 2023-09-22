@@ -165,6 +165,7 @@ layout = [html.Div([
             menor compatibilidad con su pregunta. '''),
         html.P('Nota: Procure usar términos técnicos para ofrecer una mejor calidad en los resultados'),
         html.Div(id = 'boton-inicial-para-TF-IDF'), # Mostrar advertencia para crear matriz/mostrar cuadro de entrada a pregunta
+        html.Br(),
         dbc.Spinner(html.Div(id='resultados-busqueda-tecnica'))
         ], style = {
             'textAlign': 'justify',

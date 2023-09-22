@@ -26,8 +26,6 @@ from app import app
 sys.path.append('../')
 df_original = pd.read_csv('datasets/UNAM_Completo_Corregido.csv')
 
-buffer_array = []
-buffer = io.BytesIO()
 
 def convertGraphToCY(G):
     """Función que transforma un grafo de NetworkX en un Cytoscape JSON format"""
@@ -288,7 +286,6 @@ layout = [html.Div([
               Output('alerta','children'),
               Input('radioitems-bd', 'value'))
 def decide_bd(valor):
-    print(valor)
     if valor == 2:
         return [html.P('Cargue el archivo .csv que contiene los datos.'),
                 dcc.Upload(id='upload-data', children = html.Div([
@@ -319,7 +316,6 @@ def decide_bd(valor):
               State('upload-data', 'filename'),
               prevent_initial_call = True)
 def upload_datos(bd_option, list_of_contents, filename):
-    #print('valor ' + str(bd_option))
     if bd_option == 2:
         if list_of_contents is not None and filename is not None:
             try:
@@ -508,48 +504,77 @@ def predecir(nPredict, nRestart, Autor1, Autor2, deshabPredict, deshabRestar, cy
               Input('nodes_catalogue', 'data'),
               Input('graphTrainSub', 'data'),
               Input('graphTestSub', 'data'),
+              State('sample_test', 'data'),
+              State('sample_train','data'),
               prevent_initial_call = True)
-def getSamples(cy_G_train, cy_G_test, nodes_catalogue_json, cy_G_sub_train, cy_G_sub_test):
+def getSamples(cy_G_train, cy_G_test, nodes_catalogue_json, cy_G_sub_train, cy_G_sub_test, s_test, s_train):
     if cy_G_train is not None and cy_G_test is not None and cy_G_sub_train is not None and cy_G_sub_test is not None:
-        G_train = convertCYToGraph(cy_G_train)
-        G_test = convertCYToGraph(cy_G_test)
-        G_sub_train = convertCYToGraph(cy_G_sub_train)
-        G_sub_test = convertCYToGraph(cy_G_sub_test)
-        nodes_catalogue = pd.read_json(nodes_catalogue_json, orient='split')
-        print("Nodes catalogue listo")
-        sample_train, sample_test = hs.createSamples(G_train, G_test, nodes_catalogue)
-        print("Samples vacios")
-        sample_train, sample_test = hs.getParameters(sample_train, sample_test, G_train, G_test, G_sub_train, G_sub_test)
-        print("Samples llenos")
-        return sample_train.to_json(date_format='iso', orient='split'), sample_test.to_json(date_format='iso', orient='split'), 30, 'Compilando modelos...'
+        if s_train is None and s_test is None:
+            G_train = convertCYToGraph(cy_G_train)
+            G_test = convertCYToGraph(cy_G_test)
+            G_sub_train = convertCYToGraph(cy_G_sub_train)
+            G_sub_test = convertCYToGraph(cy_G_sub_test)
+            nodes_catalogue = pd.read_json(nodes_catalogue_json, orient='split')
+            print("Nodes catalogue listo")
+            sample_train, sample_test = hs.createSamples(G_train, G_test, nodes_catalogue)
+            print("Samples vacios")
+            sample_train, sample_test = hs.getParameters(sample_train, sample_test, G_train, G_test, G_sub_train, G_sub_test)
+            print("Samples llenos")
+            return sample_train.to_json(date_format='iso', orient='split'), sample_test.to_json(date_format='iso', orient='split'), 30, 'Compilando modelos...'
+        else:
+            return s_train, s_test, 30, 'Compilando modelos...'
 
 # ___________ Obtener Metricas de los modelos
-@app.callback(Output('res_bal', 'children'),
-              Output('res_pos', 'children'),
+@app.callback(Output('res_bal_data', 'data'),
+              Output('res_pos_data', 'data'),
               Output('modelos_fechas', 'data'),
               Output('progress-4', 'value'),
               Output('progress-4', 'label'),
               Input('sample_train', 'data'),
-              Input('sample_test', 'data'))
-def getMedidas(sample_train_json, sample_test_json):
+              Input('sample_test', 'data'),
+              State('modelos_fechas','data'),
+              State('res_bal_data','data'),
+              State('res_pos_data','data'),
+              prevent_initial_call = True)
+def getMedidas(sample_train_json, sample_test_json, modelos_fechas, res_bal_data, res_pos_data):
     if sample_train_json is not None and sample_test_json is not None:
         df_sample_train = pd.read_json(sample_train_json, orient='split')
         df_sample_test = pd.read_json(sample_test_json, orient='split')
-        modelos, res_bal, res_pos = models.transformVariables(df_sample_train, df_sample_test)
-        res_bal = dbc.Table.from_dataframe(round(res_bal,3), striped=True, bordered=True, hover=True)
-        res_pos = dbc.Table.from_dataframe(round(res_pos,3), striped=True, bordered=True, hover=True)
 
-        fechas = []
-        for i in range(6):
-            now = datetime.now()
-            str_fecha = '{}-{}-{}-{}-{}-{}'.format(now.year,now.month,now.day,now.hour,now.minute,now.second)
-            joblib.dump(modelos[i], 'assets/modelos/modelo{}-{}.joblib'.format(str(i),str_fecha))
-            fechas.append(str_fecha)
-            #joblib.dump(modelos[i], buffer)
-            #buffer_array.append(buffer)
+        if res_bal_data is None:
+            modelos, res_bal, res_pos = models.transformVariables(df_sample_train, df_sample_test)
+            res_bal = res_bal.to_json(date_format='iso', orient='split')
+            res_pos = res_pos.to_json(date_format='iso', orient='split')
 
+            fechas = []
+            for i in range(6):
+                now = datetime.now()
+                str_fecha = '{}-{}-{}-{}-{}-{}'.format(now.year,now.month,now.day,now.hour,now.minute,now.second)
+                joblib.dump(modelos[i], 'assets/modelos/modelo{}-{}.joblib'.format(str(i),str_fecha))
+                fechas.append(str_fecha)
+                #joblib.dump(modelos[i], buffer)
+                #buffer_array.append(buffer)
+        else:
+            res_bal = res_bal_data
+            res_pos = res_pos_data
+            fechas = modelos_fechas
         return res_bal,res_pos, fechas, 15, 'Dibujando grafo...'
     raise PreventUpdate
+
+# ___________ Obtener Metricas de los modelos
+@app.callback(Output('res_bal', 'children'),
+              Output('res_pos', 'children'),
+              Input('res_bal_data','data'),
+              Input('res_pos_data','data'),
+              prevent_initial_call = True)
+def displayTablasRes(res_bal_data, res_pos_data):
+    if res_bal_data is not None and res_pos_data is not None:
+        res_bal_data = pd.read_json(res_bal_data, orient='split')
+        res_pos_data = pd.read_json(res_pos_data, orient='split')
+        res_bal = dbc.Table.from_dataframe(round(res_bal_data,3), striped=True, bordered=True, hover=True)
+        res_pos = dbc.Table.from_dataframe(round(res_pos_data,3), striped=True, bordered=True, hover=True)
+        return res_bal, res_pos
+
 
 # Reiniciar barra
 @app.callback(

@@ -50,6 +50,8 @@ app.layout = html.Div([
     dcc.Store(id='matrizTFIDF-global'),
     dcc.Store(id='BiGrams-list'),
     dcc.Store(id='modelos_fechas'),     #fechas de archivos de modelos
+    dcc.Store(id='res_bal_data'),
+    dcc.Store(id='res_pos_data'),
 ])
 
 #____________Callbacks_______
