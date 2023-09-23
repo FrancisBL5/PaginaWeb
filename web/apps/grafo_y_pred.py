@@ -314,25 +314,31 @@ def decide_bd(valor):
               Input('radioitems-bd','value'),
               Input('upload-data', 'contents'),
               State('upload-data', 'filename'),
+              State('modelos_fechas','data'),
+              State('output-data-upload', 'data'),
+              State('nodes_catalogue', 'data'),
               prevent_initial_call = True)
-def upload_datos(bd_option, list_of_contents, filename):
+def upload_datos(bd_option, list_of_contents, filename, modelos_fechas, output_data, nodesc_data):
     if bd_option == 2:
-        if list_of_contents is not None and filename is not None:
-            try:
-                if '.csv' in filename:
-                    content_type, content_string = list_of_contents.split(',')
-                    decoded = base64.b64decode(content_string)
-                    df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
-                else:
-                    return [], [], dbc.Alert([
-                                html.H5("Advertencia", className="alert-heading"),
-                                html.P('El archivo cargado no tiene extensión .csv'),
-                                html.P('Inténtalo de nuevo')], color="danger"), no_update, no_update
-            except Exception as e:
-                print(e)
-                return [],[],html.Div(dbc.Alert("Algo raro pasa aquí", color="danger")), no_update, no_update
-            df_filter, nodes_catalogue = hs.filterAndSplit(df)      #Conservar solo autores filtrados y no toda la base
-            return df_filter.to_json(date_format='iso', orient='split'), nodes_catalogue.to_json(date_format='iso', orient='split'), [], 15, 'Generando grafos...'
+        if modelos_fechas is None:
+            if list_of_contents is not None and filename is not None:
+                try:
+                    if '.csv' in filename:
+                        content_type, content_string = list_of_contents.split(',')
+                        decoded = base64.b64decode(content_string)
+                        df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
+                    else:
+                        return [], [], dbc.Alert([
+                                    html.H5("Advertencia", className="alert-heading"),
+                                    html.P('El archivo cargado no tiene extensión .csv'),
+                                    html.P('Inténtalo de nuevo')], color="danger"), no_update, no_update
+                except Exception as e:
+                    print(e)
+                    return [],[],html.Div(dbc.Alert("Algo raro pasa aquí", color="danger")), no_update, no_update
+                df_filter, nodes_catalogue = hs.filterAndSplit(df)      #Conservar solo autores filtrados y no toda la base
+                return df_filter.to_json(date_format='iso', orient='split'), nodes_catalogue.to_json(date_format='iso', orient='split'), [], 15, 'Generando grafos...'
+        else:
+            return output_data, nodesc_data, [], 15, 'Generando grafos...'
     else: 
         df_filter, nodes_catalogue = hs.filterAndSplit(df_original)      #Conservar solo autores filtrados y no toda la base
         return df_filter.to_json(date_format='iso', orient='split'), nodes_catalogue.to_json(date_format='iso', orient='split'), [], 15, 'Generando grafos...'
