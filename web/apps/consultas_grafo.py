@@ -73,9 +73,12 @@ def getNodesSubgraph(G, elementos, opcion):
     elif opcion == '5':
         for nodo in G.nodes():
             if G.nodes[nodo]['tipo'] == 'articulo':
-                if G.nodes[nodo]['Year'] in elementos:
-                    nodos.append(nodo)
-                    nodos.extend(list(cf.getNodesQuery(G, 'autor', nodo)))
+                try: 
+                    if G.nodes[nodo]['Year'] in elementos:
+                        nodos.append(nodo)
+                        nodos.extend(list(cf.getNodesQuery(G, 'autor', nodo)))
+                except:
+                    pass
 
     return list(np.unique(nodos))
 
